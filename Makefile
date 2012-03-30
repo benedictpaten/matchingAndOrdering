@@ -1,7 +1,5 @@
-rootPath = ../
-include ../include.mk
-
-cflags += ${tokyoCabinetIncl}
+rootPath = ./
+include ./include.mk
 
 libSources = impl/*.c
 libHeaders = inc/*.h
@@ -22,4 +20,7 @@ ${binPath}/matchingAndOrderingTests : ${libTests} ${libSources} ${libHeaders} ${
 
 clean : 
 	rm -f *.o
-	rm -f ${libPath}/matchingAndOrdering.a ${binPath}/matchingAndOrderingTests 
+	rm -f ${libPath}/matchingAndOrdering.a ${binPath}/matchingAndOrderingTests
+	
+test: all
+	python allTests.py
