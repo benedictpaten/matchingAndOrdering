@@ -1,0 +1,4 @@
+This is code used for computing matchings and finding (suboptimal) solutions to the reference problem.
+
+The project should be located in the same directory containing sonLib. Given this requirement a simple 'make all' should
+be enough to build the project. 'make test' will then a batch of obligatory tests.

@@ -22,5 +22,5 @@ clean :
 	rm -f *.o
 	rm -f ${libPath}/matchingAndOrdering.a ${binPath}/matchingAndOrderingTests
 	
-test: all
+test : all
 	python allTests.py
