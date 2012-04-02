@@ -34,7 +34,7 @@ class TestCase(unittest.TestCase):
                                  "medianDCJDistance", "medianOutOfOrderDistance", 
                                  "medianDCJDistanceForReferenceAlgorithm",
                                  "medianOutOfOrderDistanceForReferenceAlgorithm", 
-                                 "medianDCJDistanceForGrimm", "medianOutOfOrderDistanceForGrimm", "medianGenome", "medianGenomeForReferenceAlgorithm"))
+                                 "medianDCJDistanceForGrimm", "medianOutOfOrderDistanceForGrimm", "medianGenome", "medianGenomeForReferenceAlgorithm", "medianGenomeForGrimm"))
         if getLogLevelString() in  ("DEBUG", "INFO" ):
             print headerLine
         for elementNumber in self.elementNumbers:
@@ -48,12 +48,13 @@ class TestCase(unittest.TestCase):
                                 medianDCJDistance = medianHistory.getMedianDcjDistance(medianHistory.getMedianGenome())
                                 medianOutOfOrderDistance = medianHistory.getMedianOutOfOrderDistance(medianHistory.getMedianGenome())
                                 #Now run reference problem algorithm   
-                                referenceProblemMedianGenome = runSimulatedGenomeTest(medianHistory)      
+                                referenceProblemMedianGenome = runReferenceMedianProblemTest(medianHistory)      
                                 medianDCJDistanceForReferenceAlgorithm = medianHistory.getMedianDcjDistance(referenceProblemMedianGenome)
                                 medianOutOfOrderDistanceForReferenceAlgorithm = medianHistory.getMedianOutOfOrderDistance(referenceProblemMedianGenome)
                                 #Now run GRIMM
-                                medianDCJDistanceForGrimm = 0
-                                medianOutOfOrderDistanceForGrimm = 0
+                                grimmProblemMedianGenome = runGrimmMedianProblemTest(medianHistory)      
+                                medianDCJDistanceForGrimm = medianHistory.getMedianDcjDistance(grimmProblemMedianGenome)
+                                medianOutOfOrderDistanceForGrimm = medianHistory.getMedianOutOfOrderDistance(grimmProblemMedianGenome)
                                 #Now print a report line
                                 line = "\t".join([ str(i) for i in 
                                 (elementNumber, chromosomeNumber, leafGenomeNumber, 
@@ -64,7 +65,8 @@ class TestCase(unittest.TestCase):
                                  medianOutOfOrderDistanceForReferenceAlgorithm, 
                                  medianDCJDistanceForGrimm, medianOutOfOrderDistanceForGrimm,
                                  "'%s'" % str(medianHistory.getMedianGenome()),
-                                 "'%s'" % str(referenceProblemMedianGenome)) ])
+                                 "'%s'" % str(referenceProblemMedianGenome),
+                                 "'%s'" % str(grimmProblemMedianGenome)) ])
                                 #Print line
                                 if getLogLevelString() in ("DEBUG", "INFO"):
                                     print line
@@ -144,8 +146,15 @@ class TestCase(unittest.TestCase):
             self.assertTrue(d.getOutOfOrderDistance(e) >= 0)
             self.assertTrue(d.getCircularDcjDistance(e) in [ 0, 1, 2 ])
 
-def runSimulatedGenomeTest(medianHistory):
-    """Runs the reference problem
+def runGrimmMedianProblemTest(medianHistory):
+    """Runs Grimm.
+    """
+    
+    system
+    pass
+
+def runReferenceMedianProblemTest(medianHistory):
+    """Runs the reference problem for a given median history
     """
     #Make adjacencies
     stubNumber = 2
@@ -175,7 +184,7 @@ def runSimulatedGenomeTest(medianHistory):
     #Now print out the 
     input = "%i\t%i\t%i\t%s" % (nodeNumber, stubNumber, len(weights.keys()), "\t".join([ "%i\t%i\t%f" % (translateLeftSideOfElementToNode(-node1), translateLeftSideOfElementToNode(node2), weights[(node1, node2)]) for (node1, node2) in weights.keys()]))
     #Command
-    command = os.path.join(os.path.split(os.path.abspath(matchingAndOrdering.tests.simulatedGenome.__file__))[0], "testBin", "medianProblemTest")
+    command = os.path.join(os.path.split(os.path.abspath(matchingAndOrdering.tests.simulatedGenome.__file__))[0], "testBin", "referenceMedianProblemTest")
     output = popenCatch(command, input)
     medianChromosome = Chromosome()
     for adjacency in output.split():
