@@ -9,19 +9,21 @@ import os
 
 from sonLib.bioio import getLogLevelString
 from sonLib.bioio import parseSuiteTestOptions
-from sonLib.bioio import system
+from sonLib.bioio import system, popenCatch
+
+import matchingAndOrdering.tests.simulatedGenome
 
 from matchingAndOrdering.tests.simulatedGenome import Chromosome, Genome, MedianHistory
 
 class TestCase(unittest.TestCase):
     def setUp(self):
         self.tempFile = os.path.join(os.getcwd(), "simulatedGenomeTempFile.txt")
-        self.elementNumbers=(10, 100)
-        self.chromosomeNumbers=(1, 2, 5)
-        self.leafGenomeNumbers=(2, 3, 5)
-        self.operationNumber = (1, 10, 100, 1000)
-        self.operationType = ((True, False, False), (False, True, False), (False, False, True))
-        self.replicates = 1
+        self.elementNumbers=(100,)
+        self.chromosomeNumbers=(1,) # 2, 5)
+        self.leafGenomeNumbers=(3, 5, 10)
+        self.operationNumber = (1, 10, 100) # 1000)
+        self.operationType = ((True, False, False),) # (False, True, False), (False, False, True))
+        self.replicates = 5
     
     def testReferenceAndGrimmAlgorithms(self):
         """Iterates through a list of simulation variants and prints results
@@ -32,7 +34,7 @@ class TestCase(unittest.TestCase):
                                  "medianDCJDistance", "medianOutOfOrderDistance", 
                                  "medianDCJDistanceForReferenceAlgorithm",
                                  "medianOutOfOrderDistanceForReferenceAlgorithm", 
-                                 "medianDCJDistanceForGrimm", "medianOutOfOrderDistanceForGrimm"))
+                                 "medianDCJDistanceForGrimm", "medianOutOfOrderDistanceForGrimm", "medianGenome", "medianGenomeForReferenceAlgorithm"))
         if getLogLevelString() in  ("DEBUG", "INFO" ):
             print headerLine
         for elementNumber in self.elementNumbers:
@@ -45,19 +47,13 @@ class TestCase(unittest.TestCase):
                                 medianHistory.permuteLeafGenomes(operationNumber=operationNumber, doInversion=doInversion, doDcj=doDcj, doTranslocation=doTranslocation)
                                 medianDCJDistance = medianHistory.getMedianDcjDistance(medianHistory.getMedianGenome())
                                 medianOutOfOrderDistance = medianHistory.getMedianOutOfOrderDistance(medianHistory.getMedianGenome())
-                                #Dump to disk
-                                fileHandle = open(self.tempFile, 'w')
-                                fileHandle.write(medianHistory.getLeafGenomeString())
-                                fileHandle.close()
-                                #Now run reference problem algorithm         
-                                medianDCJDistanceForReferenceAlgorithm = 0
-                                medianOutOfOrderDistanceForReferenceAlgorithm = 0
+                                #Now run reference problem algorithm   
+                                referenceProblemMedianGenome = runSimulatedGenomeTest(medianHistory)      
+                                medianDCJDistanceForReferenceAlgorithm = medianHistory.getMedianDcjDistance(referenceProblemMedianGenome)
+                                medianOutOfOrderDistanceForReferenceAlgorithm = medianHistory.getMedianOutOfOrderDistance(referenceProblemMedianGenome)
                                 #Now run GRIMM
                                 medianDCJDistanceForGrimm = 0
                                 medianOutOfOrderDistanceForGrimm = 0
-                                #Now cleanup
-                                os.remove(self.tempFile)
-                                
                                 #Now print a report line
                                 line = "\t".join([ str(i) for i in 
                                 (elementNumber, chromosomeNumber, leafGenomeNumber, 
@@ -66,7 +62,9 @@ class TestCase(unittest.TestCase):
                                  medianDCJDistance, medianOutOfOrderDistance, 
                                  medianDCJDistanceForReferenceAlgorithm,
                                  medianOutOfOrderDistanceForReferenceAlgorithm, 
-                                 medianDCJDistanceForGrimm, medianOutOfOrderDistanceForGrimm) ])
+                                 medianDCJDistanceForGrimm, medianOutOfOrderDistanceForGrimm,
+                                 "'%s'" % str(medianHistory.getMedianGenome()),
+                                 "'%s'" % str(referenceProblemMedianGenome)) ])
                                 #Print line
                                 if getLogLevelString() in ("DEBUG", "INFO"):
                                     print line
@@ -145,6 +143,47 @@ class TestCase(unittest.TestCase):
             self.assertEquals(e.getElements(), d.getElements())
             self.assertTrue(d.getOutOfOrderDistance(e) >= 0)
             self.assertTrue(d.getCircularDcjDistance(e) in [ 0, 1, 2 ])
+
+def runSimulatedGenomeTest(medianHistory):
+    """Runs the reference problem
+    """
+    #Make adjacencies
+    stubNumber = 2
+    nodeNumber = len(medianHistory.getMedianGenome().getElements()) * 2 + stubNumber;
+    weights = {}
+    def weightFn(distance):
+        assert distance >= 1
+        return 1.0/distance #Hack for now
+    for genome in medianHistory.getLeafGenomes():
+        for node1, node2, distance in genome.getTransitiveAdjacencies():
+            if (node1, node2) in weights:
+                weights[(node1, node2)] += weightFn(distance)
+            else:
+                weights[(node1, node2)] = weightFn(distance)
+    def translateLeftSideOfElementToNode(element):
+        assert element != 0
+        if element < 0:        
+            return abs(element) * 2
+        return element * 2 + 1
+    def translateLeftNodeToElement(node):
+        assert node >= stubNumber
+        assert node < nodeNumber
+        element = node / 2 
+        if (node % 2) == 0:
+            element *= -1
+        return element
+    #Now print out the 
+    input = "%i\t%i\t%i\t%s" % (nodeNumber, stubNumber, len(weights.keys()), "\t".join([ "%i\t%i\t%f" % (translateLeftSideOfElementToNode(-node1), translateLeftSideOfElementToNode(node2), weights[(node1, node2)]) for (node1, node2) in weights.keys()]))
+    #Command
+    command = os.path.join(os.path.split(os.path.abspath(matchingAndOrdering.tests.simulatedGenome.__file__))[0], "testBin", "medianProblemTest")
+    output = popenCatch(command, input)
+    medianChromosome = Chromosome()
+    for adjacency in output.split():
+        medianChromosome.append(translateLeftNodeToElement(int(adjacency)))
+    medianGenome = Genome(chromosomeNumber=0, elementNumber=0)
+    medianGenome.addChromosome(medianChromosome)
+    assert medianGenome.getElements() == medianHistory.getMedianGenome().getElements()
+    return medianGenome
 
 def main():
     parseSuiteTestOptions()

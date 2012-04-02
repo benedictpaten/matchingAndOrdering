@@ -67,18 +67,18 @@ class Chromosome:
         """
         return " ".join([ str(element) for element in self.chromosome ])
 
-def orderedPair(element1, element2):
+def orderedPair(element1, element2, distance):
     """Ordered pair tuple
     """
     if element1 < element2:
-        return (element1, element2)
-    return (element2, element1)
+        return (element1, element2, distance)
+    return (element2, element1, distance)
 
 class Genome:
     def __init__(self, elementNumber=1, chromosomeNumber=1):
         """Creates a genome with elementNumber of elements and chromosomeNumber of chromosomes
         """
-        assert chromosomeNumber > 0
+        assert chromosomeNumber >= 0
         assert elementNumber >= chromosomeNumber
         self.chromosomes = []
         for i in xrange(chromosomeNumber):
@@ -165,8 +165,10 @@ class Genome:
     def getOutOfOrderDistance(self, otherGenome):
         """Computes fraction of transitive adjacencies shared by two.
         """
-        a = self.getTransitiveAdjacencies()
-        b = otherGenome.getTransitiveAdjacencies()
+        def stripDistances(transitiveAdjacencies):
+            return set([ (element1, element2) for element1, element2, distance in transitiveAdjacencies ])
+        a = stripDistances(self.getTransitiveAdjacencies())
+        b = stripDistances(otherGenome.getTransitiveAdjacencies())
         return 1.0 - len(a.intersection(b)) / float(len(a.union(b)))
     
     def getCircularDcjDistance(self, otherGenome):
@@ -222,11 +224,11 @@ class Genome:
             for i in xrange(0, len(chrString)):
                 for j in xrange(i+1, len(chrString)):
                     assert chrString[i] != chrString[j]
-                    oP = orderedPair(chrString[i], chrString[j])
+                    oP = orderedPair(chrString[i], chrString[j], j - i)
                     assert oP not in adjacencies
                     adjacencies.add(oP)
                     #For symmetry do in reverse orientation
-                    oP = orderedPair(-chrString[j], -chrString[i])
+                    oP = orderedPair(-chrString[j], -chrString[i], j - i)
                     assert oP not in adjacencies
                     adjacencies.add(oP)
         return adjacencies
@@ -277,6 +279,9 @@ class MedianHistory:
                     
     def getMedianGenome(self):
         return self.medianGenome
+    
+    def getLeafGenomes(self):
+        return self.leafGenomes[:]
         
     def getLeafGenomeString(self):
         """Gets string in GRIMM format representing the leaf genomes
