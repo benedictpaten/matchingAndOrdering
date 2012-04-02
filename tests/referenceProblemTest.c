@@ -178,7 +178,7 @@ static void testCalculateZScore(CuTest *testCase) {
     }
 }
 
-CuSuite* adjacencyProblemTestSuite(void) {
+CuSuite* referenceProblemTestSuite(void) {
     CuSuite* suite = CuSuiteNew();
     SUITE_ADD_TEST(suite, testMakeReferenceGreedily);
     SUITE_ADD_TEST(suite,

@@ -93,7 +93,7 @@ static void testADBDCExample(
     CuAssertTrue(testCase, stSortedSet_equals(config1, chosenEdgesSet) || stSortedSet_equals(config2, chosenEdgesSet));
 }
 
-CuSuite* adjacencyProblemExamplesTestSuite(void) {
+CuSuite* referenceProblemExamplesTestSuite(void) {
     CuSuite* suite = CuSuiteNew();
     SUITE_ADD_TEST(suite, testADBDCExample);
     return suite;
