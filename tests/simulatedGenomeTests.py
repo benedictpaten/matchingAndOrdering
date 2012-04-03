@@ -20,7 +20,7 @@ class TestCase(unittest.TestCase):
         self.elementNumbers=(50,)
         self.chromosomeNumbers=(1,) # 2, 5)
         self.leafGenomeNumbers=(3, 5, 10)
-        self.operationNumber = (100,) # 1000)
+        self.operationNumber = (20,) # 1000)
         self.operationType = ((True, False, False),) # (False, True, False), (False, False, True))
         self.replicates = 5
     
@@ -33,7 +33,13 @@ class TestCase(unittest.TestCase):
                                  "medianDCJDistance", "medianOutOfOrderDistance", 
                                  "medianDCJDistanceForReferenceAlgorithm",
                                  "medianOutOfOrderDistanceForReferenceAlgorithm", 
-                                 "medianDCJDistanceForAsMedian", "medianOutOfOrderDistanceForAsMedian", "medianGenomeForReferenceAlgorithm", "medianGenomeForAsMedian"))
+                                 "dCJDistanceForReferenceAlgorithmFromMedian",
+                                 "outOfOrderDistanceForReferenceAlgorithmFromMedian",
+                                 "medianDCJDistanceForAsMedian", 
+                                 "medianOutOfOrderDistanceForAsMedian", 
+                                 "dCJDistanceForAsMedianFromMedian",
+                                 "outOfOrderDistanceForAsMedianFromMedian",
+                                 "medianGenomeForReferenceAlgorithm", "medianGenomeForAsMedian"))
         if getLogLevelString() in  ("DEBUG", "INFO" ):
             print headerLine
         for elementNumber in self.elementNumbers:
@@ -50,15 +56,21 @@ class TestCase(unittest.TestCase):
                                 referenceProblemMedianGenome = runReferenceMedianProblemTest(medianHistory)      
                                 medianDCJDistanceForReferenceAlgorithm = medianHistory.getMedianDcjDistance(referenceProblemMedianGenome)
                                 medianOutOfOrderDistanceForReferenceAlgorithm = medianHistory.getMedianOutOfOrderDistance(referenceProblemMedianGenome)
+                                dCJDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getCircularDcjDistance(referenceProblemMedianGenome)
+                                outOfOrderDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getOutOfOrderDistance(referenceProblemMedianGenome)
                                 #Now run GRIMM
                                 if leafGenomeNumber == 3 and doDcj == False:
                                     asMedianProblemMedianGenome = runAsMedianMedianProblemTest(medianHistory)      
                                     medianDCJDistanceForAsMedian = medianHistory.getMedianDcjDistance(asMedianProblemMedianGenome)
                                     medianOutOfOrderDistanceForAsMedian = medianHistory.getMedianOutOfOrderDistance(asMedianProblemMedianGenome)
+                                    dCJDistanceForAsMedianFromMedian = medianHistory.getMedianGenome().getCircularDcjDistance(asMedianProblemMedianGenome)
+                                    outOfOrderDistanceForAsMedianFromMedian = medianHistory.getMedianGenome().getOutOfOrderDistance(asMedianProblemMedianGenome)
                                 else:
                                     asMedianProblemMedianGenome = "n/a"
                                     medianDCJDistanceForAsMedian = "n/a"
                                     medianOutOfOrderDistanceForAsMedian = "n/a"
+                                    dCJDistanceForAsMedianFromMedian = "n/a"
+                                    outOfOrderDistanceForAsMedianFromMedian = "n/a"
                                 #Now print a report line
                                 line = "\t".join([ str(i) for i in 
                                 (elementNumber, chromosomeNumber, leafGenomeNumber, 
@@ -67,7 +79,12 @@ class TestCase(unittest.TestCase):
                                  medianDCJDistance, medianOutOfOrderDistance, 
                                  medianDCJDistanceForReferenceAlgorithm,
                                  medianOutOfOrderDistanceForReferenceAlgorithm, 
-                                 medianDCJDistanceForAsMedian, medianOutOfOrderDistanceForAsMedian,
+                                 dCJDistanceForReferenceAlgorithmFromMedian,
+                                 outOfOrderDistanceForReferenceAlgorithmFromMedian,
+                                 medianDCJDistanceForAsMedian, 
+                                 medianOutOfOrderDistanceForAsMedian,
+                                 dCJDistanceForAsMedianFromMedian,
+                                 outOfOrderDistanceForAsMedianFromMedian,
                                  "'%s'" % str(referenceProblemMedianGenome),
                                  "'%s'" % str(asMedianProblemMedianGenome)) ])
                                 #Print line
@@ -166,10 +183,13 @@ def runAsMedianMedianProblemTest(medianHistory):
     fileHandle.close()
     os.remove(tempFile + ".rst")
     asMedianMedianGenome = Genome(chromosomeNumber=0, elementNumber=0)
-    asMedianChromosome = Chromosome()
-    for element in input[1].split()[1:]:
-        asMedianChromosome.append(int(element))
-    asMedianMedianGenome.addChromosome(asMedianChromosome)
+    for line in input[1:]:
+        if line[0] == '#':
+            break
+        asMedianChromosome = Chromosome()
+        for element in line.split()[1:]:
+            asMedianChromosome.append(int(element))
+        asMedianMedianGenome.addChromosome(asMedianChromosome)
     return asMedianMedianGenome
 
 def runReferenceMedianProblemTest(medianHistory):
