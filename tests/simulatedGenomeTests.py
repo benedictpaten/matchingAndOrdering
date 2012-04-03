@@ -17,15 +17,14 @@ from matchingAndOrdering.tests.simulatedGenome import Chromosome, Genome, Median
 
 class TestCase(unittest.TestCase):
     def setUp(self):
-        self.tempFile = os.path.join(os.getcwd(), "simulatedGenomeTempFile.txt")
-        self.elementNumbers=(100,)
+        self.elementNumbers=(50,)
         self.chromosomeNumbers=(1,) # 2, 5)
         self.leafGenomeNumbers=(3, 5, 10)
-        self.operationNumber = (1, 10, 100) # 1000)
+        self.operationNumber = (100,) # 1000)
         self.operationType = ((True, False, False),) # (False, True, False), (False, False, True))
         self.replicates = 5
     
-    def testReferenceAndGrimmAlgorithms(self):
+    def testReferenceAndAsMedianAlgorithms(self):
         """Iterates through a list of simulation variants and prints results
         """
         headerLine = "\t".join(("elementNumber", "chromosomeNumber", "leafGenomeNumber", 
@@ -34,7 +33,7 @@ class TestCase(unittest.TestCase):
                                  "medianDCJDistance", "medianOutOfOrderDistance", 
                                  "medianDCJDistanceForReferenceAlgorithm",
                                  "medianOutOfOrderDistanceForReferenceAlgorithm", 
-                                 "medianDCJDistanceForGrimm", "medianOutOfOrderDistanceForGrimm", "medianGenome", "medianGenomeForReferenceAlgorithm", "medianGenomeForGrimm"))
+                                 "medianDCJDistanceForAsMedian", "medianOutOfOrderDistanceForAsMedian", "medianGenomeForReferenceAlgorithm", "medianGenomeForAsMedian"))
         if getLogLevelString() in  ("DEBUG", "INFO" ):
             print headerLine
         for elementNumber in self.elementNumbers:
@@ -52,9 +51,14 @@ class TestCase(unittest.TestCase):
                                 medianDCJDistanceForReferenceAlgorithm = medianHistory.getMedianDcjDistance(referenceProblemMedianGenome)
                                 medianOutOfOrderDistanceForReferenceAlgorithm = medianHistory.getMedianOutOfOrderDistance(referenceProblemMedianGenome)
                                 #Now run GRIMM
-                                grimmProblemMedianGenome = runGrimmMedianProblemTest(medianHistory)      
-                                medianDCJDistanceForGrimm = medianHistory.getMedianDcjDistance(grimmProblemMedianGenome)
-                                medianOutOfOrderDistanceForGrimm = medianHistory.getMedianOutOfOrderDistance(grimmProblemMedianGenome)
+                                if leafGenomeNumber == 3 and doDcj == False:
+                                    asMedianProblemMedianGenome = runAsMedianMedianProblemTest(medianHistory)      
+                                    medianDCJDistanceForAsMedian = medianHistory.getMedianDcjDistance(asMedianProblemMedianGenome)
+                                    medianOutOfOrderDistanceForAsMedian = medianHistory.getMedianOutOfOrderDistance(asMedianProblemMedianGenome)
+                                else:
+                                    asMedianProblemMedianGenome = "n/a"
+                                    medianDCJDistanceForAsMedian = "n/a"
+                                    medianOutOfOrderDistanceForAsMedian = "n/a"
                                 #Now print a report line
                                 line = "\t".join([ str(i) for i in 
                                 (elementNumber, chromosomeNumber, leafGenomeNumber, 
@@ -63,10 +67,9 @@ class TestCase(unittest.TestCase):
                                  medianDCJDistance, medianOutOfOrderDistance, 
                                  medianDCJDistanceForReferenceAlgorithm,
                                  medianOutOfOrderDistanceForReferenceAlgorithm, 
-                                 medianDCJDistanceForGrimm, medianOutOfOrderDistanceForGrimm,
-                                 "'%s'" % str(medianHistory.getMedianGenome()),
+                                 medianDCJDistanceForAsMedian, medianOutOfOrderDistanceForAsMedian,
                                  "'%s'" % str(referenceProblemMedianGenome),
-                                 "'%s'" % str(grimmProblemMedianGenome)) ])
+                                 "'%s'" % str(asMedianProblemMedianGenome)) ])
                                 #Print line
                                 if getLogLevelString() in ("DEBUG", "INFO"):
                                     print line
@@ -146,12 +149,28 @@ class TestCase(unittest.TestCase):
             self.assertTrue(d.getOutOfOrderDistance(e) >= 0)
             self.assertTrue(d.getCircularDcjDistance(e) in [ 0, 1, 2 ])
 
-def runGrimmMedianProblemTest(medianHistory):
-    """Runs Grimm.
+def runAsMedianMedianProblemTest(medianHistory):
+    """Runs AsMedian, requires to be installed. I got it from:
+    https://sites.google.com/site/andrewweixu/Home/software/asmedian
     """
-    
-    system
-    pass
+    #Dump to disk
+    tempFile = os.path.join(os.getcwd(), "simulatedGenomeTempFile.txt")
+    fileHandle = open(tempFile, 'w')
+    fileHandle.write(medianHistory.getLeafGenomeString())
+    fileHandle.close()
+    popenCatch("java -cp /Users/benedictpaten/Desktop/ASMedian-1.0 BIOMedian %s" % tempFile)
+    os.remove(tempFile)
+    #Parse in
+    fileHandle = open(tempFile + ".rst", 'r')
+    input = fileHandle.readlines()
+    fileHandle.close()
+    os.remove(tempFile + ".rst")
+    asMedianMedianGenome = Genome(chromosomeNumber=0, elementNumber=0)
+    asMedianChromosome = Chromosome()
+    for element in input[1].split()[1:]:
+        asMedianChromosome.append(int(element))
+    asMedianMedianGenome.addChromosome(asMedianChromosome)
+    return asMedianMedianGenome
 
 def runReferenceMedianProblemTest(medianHistory):
     """Runs the reference problem for a given median history
