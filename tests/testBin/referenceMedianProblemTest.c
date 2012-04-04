@@ -10,8 +10,11 @@ int main(int argc, char *argv[]) {
     /*
      * Parse in the chain number
      */
+    int32_t permutationNumber;
+    int i = scanf("%i", &permutationNumber);
+    assert(i == 1);
     int32_t nodeNumber, stubNumber;
-    int i = scanf("%i", &nodeNumber);
+    i = scanf("%i", &nodeNumber);
     assert(i == 1);
     i = scanf("%i", &stubNumber);
     assert(i == 1);
@@ -50,7 +53,7 @@ int main(int argc, char *argv[]) {
     double totalScore;
     stList *reference = makeReferenceGreedily(stubs, chains, zMatrix, nodeNumber, &totalScore, 0);
     gibbsSamplingWithSimulatedAnnealing(reference,
-            chains, zMatrix, 1000, NULL, 1);
+            chains, zMatrix, permutationNumber, NULL, 1);
     /*
      * Print out the median genome,
      * as a list.

@@ -1,6 +1,16 @@
 """Tests that check performance of algorithm on randomly permuted sets of sequences derived from a median.
 """
 import random
+import sys
+
+def weightFn(distance, theta):
+    """Weight function
+    """
+    if theta == sys.maxint:
+        return 1.0/distance #Hack for now
+    #return 1
+    assert distance >= 1
+    return (1.0 - theta)**distance
 
 class Chromosome:
     def __init__(self):
@@ -67,13 +77,6 @@ class Chromosome:
         """
         return " ".join([ str(element) for element in self.chromosome ])
 
-def orderedPair(element1, element2, distance):
-    """Ordered pair tuple
-    """
-    if element1 < element2:
-        return (element1, element2, distance)
-    return (element2, element1, distance)
-
 class Genome:
     def __init__(self, elementNumber=1, chromosomeNumber=1):
         """Creates a genome with elementNumber of elements and chromosomeNumber of chromosomes
@@ -107,11 +110,13 @@ class Genome:
         g.chromosomes = [ chromosome.clone() for chromosome in self.chromosomes ]
         return g
     
-    def permuteByInversion(self):
+    def permuteByInversion(self, acceptableInversionLengths=None):
         """Apply a inversion op randomly to the genome
         """
         chr1 = self.getRandomChromosome()
         a, b, c = chr1.getRandomSegment()
+        if acceptableInversionLengths != None and len(b) not in acceptableInversionLengths:
+            return self.permuteByInversion(acceptableInversionLengths=acceptableInversionLengths)
         self.replaceChromosome(chr1, a.fuse(b.getReverse()).fuse(c))
         
     def permuteByDcj(self):
@@ -134,13 +139,15 @@ class Genome:
             self.replaceChromosome(chr1, a.fuse(d))
             self.replaceChromosome(chr2, c.fuse(b))
         
-    def permuteByTranslocation(self, invertProb=0.5):
+    def permuteByTranslocation(self, invertProb=0.5, acceptableTranslocationLengths=None):
         """Apply a translocation op randomly to the genome
         """
         chr1 = self.getRandomChromosome()
         chr2 = self.getRandomChromosome()
         if chr1 == chr2:
             a, b, c = chr1.getRandomSegment()
+            if acceptableTranslocationLengths != None and len(b) not in acceptableTranslocationLengths:
+                return self.permuteByTranslocation(invertProb=invertProb, acceptableTranslocationLengths=acceptableTranslocationLengths)
             if random.random() > invertProb: #Invert translocated with random prob
                 b = b.getReverse()
             if random.random() > 0.5:
@@ -151,6 +158,8 @@ class Genome:
                 self.replaceChromosome(chr1, a.fuse(c1).fuse(b).fuse(c2))
         else:
             a, b, c = chr1.getRandomSegment()
+            if acceptableTranslocationLengths != None and len(b) not in acceptableTranslocationLengths:
+                return self.permuteByTranslocation(invertProb=invertProb, acceptableTranslocationLengths=acceptableTranslocationLengths)
             d, e = chr2.getRandomBreakpoint()
             if random.random() > invertProb: #Invert translocated with random prob
                 b = b.getReverse()
@@ -161,6 +170,27 @@ class Genome:
         """Make genome string
         """
         return " & ".join([ str(chromosome) for chromosome in self.chromosomes ])
+    
+    def getWeightedOutOfOrderDistance(self, otherGenome, theta):
+        """Computes fraction of transitive adjacencies shared by two.
+        """
+        def stripDistances(transitiveAdjacencies):
+            return set([ (element1, element2) for element1, element2, distance in transitiveAdjacencies ])
+        def distanceHash(transitiveAdjacencies):
+            distances = {}
+            for element1, element2, distance in transitiveAdjacencies:
+                distances[(element1, element2)] = distance
+            return distances
+        def sumWeights(pairs, distances):
+            return sum([ weightFn(distances[pair], theta) for pair in pairs ])
+        tA1 = self.getTransitiveAdjacencies()
+        tA2 = otherGenome.getTransitiveAdjacencies()
+        dH1 = distanceHash(tA1)
+        dH2 = distanceHash(tA2)
+        p1 = stripDistances(tA1)
+        p2 = stripDistances(tA2)
+        pI = p1.intersection(p2)
+        return 1.0 - (sumWeights(pI, dH1) + sumWeights(pI, dH2)) / (sumWeights(p1, dH1) + sumWeights(p2, dH2))
     
     def getOutOfOrderDistance(self, otherGenome):
         """Computes fraction of transitive adjacencies shared by two.
@@ -224,11 +254,11 @@ class Genome:
             for i in xrange(0, len(chrString)):
                 for j in xrange(i+1, len(chrString)):
                     assert chrString[i] != chrString[j]
-                    oP = orderedPair(chrString[i], chrString[j], j - i)
+                    oP = (chrString[i], chrString[j], j - i)
                     assert oP not in adjacencies
                     adjacencies.add(oP)
                     #For symmetry do in reverse orientation
-                    oP = orderedPair(-chrString[j], -chrString[i], j - i)
+                    oP = (-chrString[j], -chrString[i], j - i)
                     assert oP not in adjacencies
                     adjacencies.add(oP)
         return adjacencies
@@ -264,7 +294,8 @@ class MedianHistory:
         self.medianGenome = medianGenome
         self.leafGenomes = [ medianGenome.clone() for i in xrange(leafGenomeNumber) ]
         
-    def permuteLeafGenomes(self, operationNumber=1, doInversion=False, doDcj=False, doTranslocation=False):
+    def permuteLeafGenomes(self, operationNumber=1, doInversion=False, doShortInversion=False,
+                           doDcj=False, doTranslocation=False, doShortTranslocation=False):
         """Permutes the child genomes using the given operator types, each for
         operationNumber of times. 
         """
@@ -272,10 +303,14 @@ class MedianHistory:
             for i in xrange(operationNumber):
                 if doInversion:
                     leafGenome.permuteByInversion()
+                if doShortInversion:
+                    leafGenome.permuteByInversion(acceptableInversionLengths=(1,2,))
                 if doDcj:
                     leafGenome.permuteByDcj()
                 if doTranslocation:
                     leafGenome.permuteByTranslocation()
+                if doShortTranslocation:
+                    leafGenome.permuteByTranslocation(acceptableTranslocationLengths=(1,))
                     
     def getMedianGenome(self):
         return self.medianGenome
@@ -297,4 +332,10 @@ class MedianHistory:
         """Gets the median out of order distance
         """
         return sum([ leafGenome.getOutOfOrderDistance(genome) for leafGenome in self.leafGenomes ])/len(self.leafGenomes)
+
+    def getWeightedMedianOutOfOrderDistance(self, genome, theta):
+        """Gets the median out of order distance
+        """
+        return sum([ leafGenome.getWeightedOutOfOrderDistance(genome, theta=theta) for leafGenome in self.leafGenomes ])/len(self.leafGenomes)
+
 

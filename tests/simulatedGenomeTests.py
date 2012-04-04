@@ -13,83 +13,116 @@ from sonLib.bioio import system, popenCatch
 
 import matchingAndOrdering.tests.simulatedGenome
 
-from matchingAndOrdering.tests.simulatedGenome import Chromosome, Genome, MedianHistory
+from matchingAndOrdering.tests.simulatedGenome import Chromosome, Genome, MedianHistory, weightFn
 
 class TestCase(unittest.TestCase):
     def setUp(self):
-        self.elementNumbers=(50,)
+        self.elementNumbers=(250,)
         self.chromosomeNumbers=(1,) # 2, 5)
-        self.leafGenomeNumbers=(3, 5, 10)
-        self.operationNumber = (20,) # 1000)
-        self.operationType = ((True, False, False),) # (False, True, False), (False, False, True))
-        self.replicates = 5
+        self.leafGenomeNumbers=(3,) # 5, 10)
+        self.operationNumber = (1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50) #(1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 150, 200, 250)
+        self.operationType = ((True, False, False, True, False),) #(True, False, False),) #(False, True, False), (False, False, True))
+        self.replicates = 10
+        self.greedyIterations = (100,)
+        self.theta = (0.1,) #0.2,0.5,0.9)
     
     def testReferenceAndAsMedianAlgorithms(self):
         """Iterates through a list of simulation variants and prints results
         """
         headerLine = "\t".join(("elementNumber", "chromosomeNumber", "leafGenomeNumber", 
                                  "operationNumber",
-                                 "doInversion", "doDcj", "doTranslocation", "replicate", 
+                                 "totalOperationNumber",
+                                 "doInversion", "doShortInversion", "doDcj", "doTranslocation", "doShortTranslocation", 
+                                 "greedyIterations",
+                                 "theta",
+                                 "replicate", 
                                  "medianDCJDistance", "medianOutOfOrderDistance", 
+                                 "weightedMedianOutOfOrderDistance", 
                                  "medianDCJDistanceForReferenceAlgorithm",
                                  "medianOutOfOrderDistanceForReferenceAlgorithm", 
+                                 "weightedMedianOutOfOrderDistanceForReferenceAlgorithm",
                                  "dCJDistanceForReferenceAlgorithmFromMedian",
                                  "outOfOrderDistanceForReferenceAlgorithmFromMedian",
+                                 "weightedOutOfOrderDistanceForReferenceAlgorithmFromMedian",
                                  "medianDCJDistanceForAsMedian", 
                                  "medianOutOfOrderDistanceForAsMedian", 
+                                 "weightedMedianOutOfOrderDistanceForAsMedian", 
                                  "dCJDistanceForAsMedianFromMedian",
                                  "outOfOrderDistanceForAsMedianFromMedian",
-                                 "medianGenomeForReferenceAlgorithm", "medianGenomeForAsMedian"))
+                                 "weightedOutOfOrderDistanceForAsMedianFromMedian",
+                                 "medianGenomeForReferenceAlgorithm", 
+                                 "medianGenomeForAsMedian"))
         if getLogLevelString() in  ("DEBUG", "INFO" ):
             print headerLine
         for elementNumber in self.elementNumbers:
             for chromosomeNumber in self.chromosomeNumbers:
                 for leafGenomeNumber in self.leafGenomeNumbers:
                     for operationNumber in self.operationNumber:
-                        for doInversion, doDcj, doTranslocation in self.operationType:
-                            for replicate in xrange(self.replicates):
-                                medianHistory = MedianHistory(Genome(elementNumber=elementNumber, chromosomeNumber=chromosomeNumber), leafGenomeNumber=leafGenomeNumber)
-                                medianHistory.permuteLeafGenomes(operationNumber=operationNumber, doInversion=doInversion, doDcj=doDcj, doTranslocation=doTranslocation)
-                                medianDCJDistance = medianHistory.getMedianDcjDistance(medianHistory.getMedianGenome())
-                                medianOutOfOrderDistance = medianHistory.getMedianOutOfOrderDistance(medianHistory.getMedianGenome())
-                                #Now run reference problem algorithm   
-                                referenceProblemMedianGenome = runReferenceMedianProblemTest(medianHistory)      
-                                medianDCJDistanceForReferenceAlgorithm = medianHistory.getMedianDcjDistance(referenceProblemMedianGenome)
-                                medianOutOfOrderDistanceForReferenceAlgorithm = medianHistory.getMedianOutOfOrderDistance(referenceProblemMedianGenome)
-                                dCJDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getCircularDcjDistance(referenceProblemMedianGenome)
-                                outOfOrderDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getOutOfOrderDistance(referenceProblemMedianGenome)
-                                #Now run GRIMM
-                                if leafGenomeNumber == 3 and doDcj == False:
-                                    asMedianProblemMedianGenome = runAsMedianMedianProblemTest(medianHistory)      
-                                    medianDCJDistanceForAsMedian = medianHistory.getMedianDcjDistance(asMedianProblemMedianGenome)
-                                    medianOutOfOrderDistanceForAsMedian = medianHistory.getMedianOutOfOrderDistance(asMedianProblemMedianGenome)
-                                    dCJDistanceForAsMedianFromMedian = medianHistory.getMedianGenome().getCircularDcjDistance(asMedianProblemMedianGenome)
-                                    outOfOrderDistanceForAsMedianFromMedian = medianHistory.getMedianGenome().getOutOfOrderDistance(asMedianProblemMedianGenome)
-                                else:
-                                    asMedianProblemMedianGenome = "n/a"
-                                    medianDCJDistanceForAsMedian = "n/a"
-                                    medianOutOfOrderDistanceForAsMedian = "n/a"
-                                    dCJDistanceForAsMedianFromMedian = "n/a"
-                                    outOfOrderDistanceForAsMedianFromMedian = "n/a"
-                                #Now print a report line
-                                line = "\t".join([ str(i) for i in 
-                                (elementNumber, chromosomeNumber, leafGenomeNumber, 
-                                 operationNumber,
-                                 doInversion, doDcj, doTranslocation, replicate, 
-                                 medianDCJDistance, medianOutOfOrderDistance, 
-                                 medianDCJDistanceForReferenceAlgorithm,
-                                 medianOutOfOrderDistanceForReferenceAlgorithm, 
-                                 dCJDistanceForReferenceAlgorithmFromMedian,
-                                 outOfOrderDistanceForReferenceAlgorithmFromMedian,
-                                 medianDCJDistanceForAsMedian, 
-                                 medianOutOfOrderDistanceForAsMedian,
-                                 dCJDistanceForAsMedianFromMedian,
-                                 outOfOrderDistanceForAsMedianFromMedian,
-                                 "'%s'" % str(referenceProblemMedianGenome),
-                                 "'%s'" % str(asMedianProblemMedianGenome)) ])
-                                #Print line
-                                if getLogLevelString() in ("DEBUG", "INFO"):
-                                    print line
+                        for doInversion, doShortInversion, doDcj, doTranslocation, doShortTranslocation in self.operationType:
+                            for greedyIterations in self.greedyIterations:
+                                for theta in self.theta:
+                                    for replicate in xrange(self.replicates):
+                                        medianHistory = MedianHistory(Genome(elementNumber=elementNumber, chromosomeNumber=chromosomeNumber), leafGenomeNumber=leafGenomeNumber)
+                                        medianHistory.permuteLeafGenomes(operationNumber=operationNumber, doInversion=doInversion, doDcj=doDcj, doTranslocation=doTranslocation,
+                                                                         doShortInversion=doShortInversion, doShortTranslocation=doShortTranslocation)
+                                        medianDCJDistance = medianHistory.getMedianDcjDistance(medianHistory.getMedianGenome())
+                                        medianOutOfOrderDistance = medianHistory.getMedianOutOfOrderDistance(medianHistory.getMedianGenome())
+                                        weightedMedianOutOfOrderDistance = medianHistory.getWeightedMedianOutOfOrderDistance(medianHistory.getMedianGenome(), theta=theta)
+                                        #Now run reference problem algorithm   
+                                        referenceProblemMedianGenome = runReferenceMedianProblemTest(medianHistory, greedyIterations, theta)      
+                                        medianDCJDistanceForReferenceAlgorithm = medianHistory.getMedianDcjDistance(referenceProblemMedianGenome)
+                                        medianOutOfOrderDistanceForReferenceAlgorithm = medianHistory.getMedianOutOfOrderDistance(referenceProblemMedianGenome)
+                                        weightedMedianOutOfOrderDistanceForReferenceAlgorithm = medianHistory.getWeightedMedianOutOfOrderDistance(referenceProblemMedianGenome, theta=theta)
+                                        dCJDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getCircularDcjDistance(referenceProblemMedianGenome)
+                                        outOfOrderDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getOutOfOrderDistance(referenceProblemMedianGenome)
+                                        weightedOutOfOrderDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getWeightedOutOfOrderDistance(referenceProblemMedianGenome, theta=theta)
+                                        #Now run GRIMM
+                                        #Total operationNumber 
+                                        totalOperationNumber = operationNumber * len([  i for i in (doInversion, doShortInversion, doDcj, doTranslocation, doShortTranslocation) if i == True ])
+                                        if leafGenomeNumber == 3 and doDcj == False and float(totalOperationNumber) / elementNumber <= 0.5:
+                                            asMedianProblemMedianGenome = runAsMedianMedianProblemTest(medianHistory)
+                                            medianDCJDistanceForAsMedian = medianHistory.getMedianDcjDistance(asMedianProblemMedianGenome)
+                                            medianOutOfOrderDistanceForAsMedian = medianHistory.getMedianOutOfOrderDistance(asMedianProblemMedianGenome)
+                                            weightedMedianOutOfOrderDistanceForAsMedian = medianHistory.getWeightedMedianOutOfOrderDistance(asMedianProblemMedianGenome, theta=theta)
+                                            dCJDistanceForAsMedianFromMedian = medianHistory.getMedianGenome().getCircularDcjDistance(asMedianProblemMedianGenome)
+                                            outOfOrderDistanceForAsMedianFromMedian = medianHistory.getMedianGenome().getOutOfOrderDistance(asMedianProblemMedianGenome)
+                                            weightedOutOfOrderDistanceForAsMedianFromMedian = medianHistory.getMedianGenome().getWeightedOutOfOrderDistance(asMedianProblemMedianGenome, theta=theta)
+                                        else:
+                                            asMedianProblemMedianGenome = "n/a"
+                                            medianDCJDistanceForAsMedian = "n/a"
+                                            medianOutOfOrderDistanceForAsMedian = "n/a"
+                                            weightedMedianOutOfOrderDistanceForAsMedian = "n/a"
+                                            dCJDistanceForAsMedianFromMedian = "n/a"
+                                            outOfOrderDistanceForAsMedianFromMedian = "n/a"
+                                            weightedOutOfOrderDistanceForAsMedianFromMedian = "n/a"
+                                        #Now prepare line to print
+                                        line = "\t".join([ str(i) for i in 
+                                        (elementNumber, chromosomeNumber, leafGenomeNumber, 
+                                         operationNumber,
+                                         totalOperationNumber,
+                                         doInversion, doShortInversion, doDcj, doTranslocation, doShortTranslocation,
+                                         greedyIterations,
+                                         theta,
+                                         replicate, 
+                                         medianDCJDistance, medianOutOfOrderDistance, 
+                                         weightedMedianOutOfOrderDistance,
+                                         medianDCJDistanceForReferenceAlgorithm,
+                                         medianOutOfOrderDistanceForReferenceAlgorithm, 
+                                         weightedMedianOutOfOrderDistanceForReferenceAlgorithm, 
+                                         dCJDistanceForReferenceAlgorithmFromMedian,
+                                         outOfOrderDistanceForReferenceAlgorithmFromMedian,
+                                         weightedOutOfOrderDistanceForReferenceAlgorithmFromMedian,
+                                         medianDCJDistanceForAsMedian, 
+                                         medianOutOfOrderDistanceForAsMedian,
+                                         weightedMedianOutOfOrderDistanceForAsMedian,
+                                         dCJDistanceForAsMedianFromMedian,
+                                         outOfOrderDistanceForAsMedianFromMedian,
+                                         weightedOutOfOrderDistanceForAsMedianFromMedian,
+                                         "'%s'" % str(referenceProblemMedianGenome),
+                                         "'%s'" % str(asMedianProblemMedianGenome)) ])
+                                        #Print line
+                                        if getLogLevelString() in ("DEBUG", "INFO"):
+                                            print line
     
     def testChromosome(self):
         """Test basic functions of a chromosome.
@@ -192,22 +225,19 @@ def runAsMedianMedianProblemTest(medianHistory):
         asMedianMedianGenome.addChromosome(asMedianChromosome)
     return asMedianMedianGenome
 
-def runReferenceMedianProblemTest(medianHistory):
+def runReferenceMedianProblemTest(medianHistory, greedyIterations,theta):
     """Runs the reference problem for a given median history
     """
     #Make adjacencies
     stubNumber = 2
     nodeNumber = len(medianHistory.getMedianGenome().getElements()) * 2 + stubNumber;
     weights = {}
-    def weightFn(distance):
-        assert distance >= 1
-        return 1.0/distance #Hack for now
     for genome in medianHistory.getLeafGenomes():
         for node1, node2, distance in genome.getTransitiveAdjacencies():
             if (node1, node2) in weights:
-                weights[(node1, node2)] += weightFn(distance)
+                weights[(node1, node2)] += weightFn(distance, theta)
             else:
-                weights[(node1, node2)] = weightFn(distance)
+                weights[(node1, node2)] = weightFn(distance, theta)
     def translateLeftSideOfElementToNode(element):
         assert element != 0
         if element < 0:        
@@ -221,7 +251,7 @@ def runReferenceMedianProblemTest(medianHistory):
             element *= -1
         return element
     #Now print out the 
-    input = "%i\t%i\t%i\t%s" % (nodeNumber, stubNumber, len(weights.keys()), "\t".join([ "%i\t%i\t%f" % (translateLeftSideOfElementToNode(-node1), translateLeftSideOfElementToNode(node2), weights[(node1, node2)]) for (node1, node2) in weights.keys()]))
+    input = "%i\t%i\t%i\t%i\t%s" % (greedyIterations, nodeNumber, stubNumber, len(weights.keys()), "\t".join([ "%i\t%i\t%f" % (translateLeftSideOfElementToNode(-node1), translateLeftSideOfElementToNode(node2), weights[(node1, node2)]) for (node1, node2) in weights.keys()]))
     #Command
     command = os.path.join(os.path.split(os.path.abspath(matchingAndOrdering.tests.simulatedGenome.__file__))[0], "testBin", "referenceMedianProblemTest")
     output = popenCatch(command, input)
