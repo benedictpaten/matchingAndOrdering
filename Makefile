@@ -6,9 +6,12 @@ libHeaders = inc/*.h
 libTests = tests/*.c
 testBin = tests/testBin
 
-all : externalTools ${libPath}/matchingAndOrdering.a ${binPath}/matchingAndOrderingTests ${testBin}/referenceMedianProblemTest
+all : externalToolsM ${libPath}/matchingAndOrdering.a ${binPath}/matchingAndOrderingTests ${testBin}/referenceMedianProblemTest
 
-${libPath}/matchingAndOrdering.a : ${libSources} ${libHeaders} ${basicLibsDependencies} externalTools
+externalToolsM : ${libSources} ${libHeaders} ${basicLibsDependencies}
+	cd externalTools && make all
+
+${libPath}/matchingAndOrdering.a : ${libSources} ${libHeaders} ${basicLibsDependencies} 
 	${cxx} ${cflags} -I inc -I ${libPath}/ -c ${libSources}
 	ar rc matchingAndOrdering.a *.o
 	ranlib matchingAndOrdering.a 
@@ -16,13 +19,14 @@ ${libPath}/matchingAndOrdering.a : ${libSources} ${libHeaders} ${basicLibsDepend
 	mv matchingAndOrdering.a ${libPath}/
 	cp ${libHeaders} ${libPath}/
 
-${binPath}/matchingAndOrderingTests : ${libTests} ${libSources} ${libHeaders} ${libPath}/matchingAndOrdering.a ${basicLibsDependencies} externalTools
+${binPath}/matchingAndOrderingTests : ${libTests} ${libSources} ${libHeaders} ${libPath}/matchingAndOrdering.a ${basicLibsDependencies} 
 	${cxx} ${cflags} -I inc -I impl -I${libPath} -o ${binPath}/matchingAndOrderingTests ${libTests} ${libPath}/matchingAndOrdering.a ${basicLibs}
 
-${testBin}/referenceMedianProblemTest : ${testBin}/referenceMedianProblemTest.c ${libSources} ${libHeaders} ${libPath}/matchingAndOrdering.a ${basicLibsDependencies} externalTools
+${testBin}/referenceMedianProblemTest : ${testBin}/referenceMedianProblemTest.c ${libSources} ${libHeaders} ${libPath}/matchingAndOrdering.a ${basicLibsDependencies} 
 	${cxx} ${cflags} -I inc -I impl -I${libPath} -o ${testBin}/referenceMedianProblemTest ${testBin}/referenceMedianProblemTest.c ${libPath}/matchingAndOrdering.a ${basicLibs}
 
 clean : 
+	cd externalTools && make clean
 	rm -f *.o
 	rm -f ${libPath}/matchingAndOrdering.a ${binPath}/matchingAndOrderingTests ${testBin}/referenceMedianProblemTest
 	

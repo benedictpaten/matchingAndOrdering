@@ -17,7 +17,7 @@ ifeq ($(UNAME),Darwin)
 	LIBS := 
 endif
 
-binPath = ../../bin
+binPath = ../../../sonLib/bin
 
 all: ${binPath}/blossom5 ${binPath}/blossom_randGraph.py
 
