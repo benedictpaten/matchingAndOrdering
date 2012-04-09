@@ -19,10 +19,10 @@ class TestCase(unittest.TestCase):
     def setUp(self):
         self.elementNumbers=(250,)
         self.chromosomeNumbers=(1,) # 2, 5)
-        self.leafGenomeNumbers=(3,) # 5, 10)
-        self.operationNumber = (1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50) #(1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 150, 200, 250)
-        self.operationType = ((True, False, False, True, False),) #(True, False, False),) #(False, True, False), (False, False, True))
-        self.replicates = 10
+        self.leafGenomeNumbers=(5,) # 5, 10)
+        self.operationNumber = (10,) #(1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50) #(1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 150, 200, 250)
+        self.operationType = ((False, True, False, False, True),) #(True, False, False),) #(False, True, False), (False, False, True))
+        self.replicates = 3
         self.greedyIterations = (100,)
         self.theta = (0.1,) #0.2,0.5,0.9)
     
@@ -76,10 +76,9 @@ class TestCase(unittest.TestCase):
                                         dCJDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getCircularDcjDistance(referenceProblemMedianGenome)
                                         outOfOrderDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getOutOfOrderDistance(referenceProblemMedianGenome)
                                         weightedOutOfOrderDistanceForReferenceAlgorithmFromMedian = medianHistory.getMedianGenome().getWeightedOutOfOrderDistance(referenceProblemMedianGenome, theta=theta)
-                                        #Now run GRIMM
-                                        #Total operationNumber 
                                         totalOperationNumber = operationNumber * len([  i for i in (doInversion, doShortInversion, doDcj, doTranslocation, doShortTranslocation) if i == True ])
-                                        if leafGenomeNumber == 3 and doDcj == False and float(totalOperationNumber) / elementNumber <= 0.5:
+                                        #Biomedian comparison turned off
+                                        if False and leafGenomeNumber == 3 and doDcj == False and float(totalOperationNumber) / elementNumber <= 0.5:
                                             asMedianProblemMedianGenome = runAsMedianMedianProblemTest(medianHistory)
                                             medianDCJDistanceForAsMedian = medianHistory.getMedianDcjDistance(asMedianProblemMedianGenome)
                                             medianOutOfOrderDistanceForAsMedian = medianHistory.getMedianOutOfOrderDistance(asMedianProblemMedianGenome)
@@ -208,7 +207,8 @@ def runAsMedianMedianProblemTest(medianHistory):
     fileHandle = open(tempFile, 'w')
     fileHandle.write(medianHistory.getLeafGenomeString())
     fileHandle.close()
-    popenCatch("java -cp /Users/benedictpaten/Desktop/ASMedian-1.0 BIOMedian %s" % tempFile)
+    #-cp /Users/benedictpaten/Desktop/ASMedian-1.0 
+    popenCatch("java BIOMedian %s" % tempFile)
     os.remove(tempFile)
     #Parse in
     fileHandle = open(tempFile + ".rst", 'r')
