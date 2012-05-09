@@ -8,7 +8,7 @@ testBin = tests/testBin
 
 all : externalToolsM ${libPath}/matchingAndOrdering.a ${binPath}/matchingAndOrderingTests ${testBin}/referenceMedianProblemTest
 
-externalToolsM : ${libSources} ${libHeaders} ${basicLibsDependencies}
+externalToolsM : 
 	cd externalTools && make all
 
 ${libPath}/matchingAndOrdering.a : ${libSources} ${libHeaders} ${basicLibsDependencies} 
