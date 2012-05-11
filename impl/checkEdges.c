@@ -5,6 +5,7 @@ void checkEdges(stList *edges, stSortedSet * nodes, bool coversAllNodes,
         bool isClique) {
     int32_t nodeNumber = stSortedSet_size(nodes);
     int32_t maxNode = nodeNumber == 0 ? 0 : stIntTuple_getPosition(stSortedSet_getLast(nodes), 0);
+    (void)maxNode;
     stSortedSet *edgesSeen = stSortedSet_construct3(
             (int(*)(const void *, const void *)) stIntTuple_cmpFn,
             (void(*)(void *)) stIntTuple_destruct);
