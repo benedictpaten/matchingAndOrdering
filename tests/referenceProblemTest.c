@@ -8,6 +8,7 @@
 #include "sonLib.h"
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 #include "stReferenceProblem.h"
 #include "stMatchingAlgorithms.h"
 #include "stCheckEdges.h"
@@ -89,10 +90,16 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
     for (int32_t i = 0; i < 100; i++) {
         setup();
         double totalScore;
+        time_t startTime = time(NULL);
+        bool fast = 1; //st_random() > 0.5;
         stList *reference = makeReferenceGreedily(stubs, chains, zMatrix,
-                nodeNumber, &totalScore, INT32_MAX);
+                nodeNumber, &totalScore, fast);
         checkIsValidReference(testCase, reference, totalScore);
-        logReference(reference, nodeNumber, zMatrix, totalScore, "just greedy");
+        time_t totalTime = time(NULL) - startTime;
+        char *cA = stString_print("Greedy (fast:%i), %i nodes, it took %i seconds, score: %f\n", fast, nodeNumber, totalTime, totalScore);
+        st_logInfo(cA);
+        logReference(reference, nodeNumber, zMatrix, totalScore, cA);
+        free(cA);
         teardown();
     }
 }
@@ -102,18 +109,27 @@ static void testGibbsSamplingWithSimulatedAnnealing(CuTest *testCase,
     for (int32_t i = 0; i < 100; i++) {
         setup();
         double totalScore;
+        time_t startTime = time(NULL);
+        bool fast = maxNumberOfChainsBeforeSwitchingToFast > nodeNumber;
         stList *reference = makeReferenceGreedily(stubs, chains, zMatrix,
-                nodeNumber, &totalScore, maxNumberOfChainsBeforeSwitchingToFast);
+                nodeNumber, &totalScore, fast);
         checkIsValidReference(testCase, reference, totalScore);
-        logReference(reference, nodeNumber, zMatrix, totalScore,
-                "pre-annealing");
+        time_t totalTime = time(NULL) - startTime;
+        char *cA = stString_print("Pre-annealing greedy (fast:%i), %i nodes, it took %i seconds, score: %f\n", fast, nodeNumber, totalTime, totalScore);
+        st_logInfo(cA);
+        logReference(reference, nodeNumber, zMatrix, totalScore, cA);
+        free(cA);
+        startTime = time(NULL);
         int32_t permutations = st_randomInt(0, 100);
         gibbsSamplingWithSimulatedAnnealing(reference, chains, zMatrix,
                 permutations, temperatureFn, pureGreedy);
         double totalScoreAfterAnnealing = calculateZScoreOfReference(reference, nodeNumber, zMatrix);
         checkIsValidReference(testCase, reference, totalScoreAfterAnnealing);
+        totalTime = time(NULL) - startTime;
+        cA = stString_print("Post-annealing permutations:%i, %i nodes, it took %i seconds, score: %f\n", permutations, nodeNumber, totalTime, totalScore);
+        st_logInfo(cA);
         logReference(reference, nodeNumber, zMatrix, totalScoreAfterAnnealing,
-                "post-annealing");
+                cA);
         if(pureGreedy) {
             CuAssertTrue(testCase, totalScoreAfterAnnealing + 0.001 >= totalScore);
         }
