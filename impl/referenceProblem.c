@@ -96,8 +96,8 @@ static double referenceIntervalInsertion_connectionScore(ReferenceIntervalInsert
             - referenceIntervalInsertion_isCurrentlyConnected(referenceIntervalInsertion, z, nodeNumber);
 }
 
-static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *reference, stIntTuple *chain, float *z,
-        int32_t nodeNumber, double *positiveScores, double *negativeScores) {
+static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *reference, stIntTuple *chain, float *z, int32_t nodeNumber,
+        double *positiveScores, double *negativeScores) {
     /*
      * Calculates the scores of the inserting the chain at each possible position in the reference.
      *
@@ -105,8 +105,9 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
      */
     int32_t _5Node = stIntTuple_getPosition(chain, 0);
     int32_t _3Node = stIntTuple_getPosition(chain, 1);
-    ReferenceIntervalInsertion maxReferenceIntervalInsertion;
-    referenceIntervalInsertion_fillOut(&maxReferenceIntervalInsertion, NULL, 0, INT64_MIN, NULL);
+    int64_t maxScore = INT64_MIN;
+    bool maxOrientation = 0;
+    ReferenceInterval *maxReferenceInterval = NULL;
     for (int32_t i = 0; i < stList_length(reference); i++) {
         ReferenceInterval *referenceInterval = stList_get(reference, i);
         double positiveScoreBack = z[referenceInterval->_5Node * nodeNumber + _3Node]; //Add the score of the 3 prime end of the interval to the 3 prime most insertion point
@@ -124,13 +125,15 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
         negativeScores[j] += negativeScoreBack;
         while (1) {
             if (positiveScores[j] > negativeScores[j]) {
-                if (positiveScores[j] > maxReferenceIntervalInsertion.score) {
-                    referenceIntervalInsertion_fillOut(&maxReferenceIntervalInsertion, chain, 1, positiveScores[j], referenceInterval);
+                if (positiveScores[j] > maxScore) {
+                    maxScore = positiveScores[j];
+                    maxOrientation = 1;
+                    maxReferenceInterval = referenceInterval;
                 }
-            } else {
-                if (negativeScores[j] > maxReferenceIntervalInsertion.score) {
-                    referenceIntervalInsertion_fillOut(&maxReferenceIntervalInsertion, chain, 0, negativeScores[j], referenceInterval);
-                }
+            } else if (negativeScores[j] > maxScore) {
+                maxScore = negativeScores[j];
+                maxOrientation = 0;
+                maxReferenceInterval = referenceInterval;
             }
             if (referenceInterval->pReferenceInterval == NULL) {
                 break;
@@ -147,6 +150,9 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
         }
         assert(j == 0);
     }
+    assert(maxReferenceInterval != NULL);
+    ReferenceIntervalInsertion maxReferenceIntervalInsertion;
+    referenceIntervalInsertion_fillOut(&maxReferenceIntervalInsertion, chain, maxOrientation, maxScore, maxReferenceInterval);
     return maxReferenceIntervalInsertion;
 }
 
@@ -283,8 +289,8 @@ void greedyImprovement(stList *reference, stList *chains, float *z, int32_t perm
         for (int32_t i = 0; i < stList_length(chains); i++) {
             stIntTuple *chain = stList_get(chains, i);
             removeChainFromReference(chain, reference);
-            ReferenceIntervalInsertion referenceIntervalInsertion = getMaxReferenceIntervalInsertion(reference, chain, z,
-                    nodeNumber, positiveScores, negativeScores);
+            ReferenceIntervalInsertion referenceIntervalInsertion = getMaxReferenceIntervalInsertion(reference, chain, z, nodeNumber,
+                    positiveScores, negativeScores);
             insert(&referenceIntervalInsertion);
         }
     }
@@ -509,5 +515,4 @@ void gibbsSamplingWithSimulatedAnnealing(stList *reference, stList *chains, floa
     }
     stList_destruct(chains);
 }
-
 
