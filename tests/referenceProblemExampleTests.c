@@ -67,7 +67,8 @@ static void testADBDCExample(
     double totalScore;
     stList *reference = makeReferenceGreedily(stubs, chains, zMatrix, nodeNumber, &totalScore, INT32_MAX);
 
-    gibbsSamplingWithSimulatedAnnealing(reference, chains, zMatrix, 100, NULL, 1);
+    greedyImprovement(reference, chains, zMatrix, 100);
+    //(reference, chains, zMatrix, 100, NULL);
     logZScoreOfReference(reference, nodeNumber, zMatrix);
 
     logReference(reference, nodeNumber, zMatrix, totalScore,

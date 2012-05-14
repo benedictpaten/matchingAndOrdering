@@ -11,9 +11,11 @@
 stList *makeReferenceGreedily(stList *stubs, stList *chains,
         double *z, int32_t nodeNumber, double *totalScore, bool fast);
 
+void greedyImprovement(stList *reference, stList *chains, double *z, int32_t permutations);
+
 void gibbsSamplingWithSimulatedAnnealing(stList *reference,
         stList *chains, double *z, int32_t permutations,
-        double(*temperature)(double), bool pureGreedy);
+        double(*temperature)(double));
 
 stList *convertReferenceToAdjacencyEdges(stList *reference);
 

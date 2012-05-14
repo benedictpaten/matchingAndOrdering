@@ -121,8 +121,13 @@ static void testGibbsSamplingWithSimulatedAnnealing(CuTest *testCase,
         free(cA);
         startTime = time(NULL);
         int32_t permutations = st_randomInt(0, 100);
-        gibbsSamplingWithSimulatedAnnealing(reference, chains, zMatrix,
-                permutations, temperatureFn, pureGreedy);
+        if(pureGreedy) {
+            greedyImprovement(reference, chains, zMatrix, permutations);
+        }
+        else {
+            gibbsSamplingWithSimulatedAnnealing(reference, chains, zMatrix,
+                    permutations, temperatureFn);
+        }
         double totalScoreAfterAnnealing = calculateZScoreOfReference(reference, nodeNumber, zMatrix);
         checkIsValidReference(testCase, reference, totalScoreAfterAnnealing);
         totalTime = time(NULL) - startTime;

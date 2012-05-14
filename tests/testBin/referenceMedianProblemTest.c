@@ -52,8 +52,8 @@ int main(int argc, char *argv[]) {
      */
     double totalScore;
     stList *reference = makeReferenceGreedily(stubs, chains, zMatrix, nodeNumber, &totalScore, 0);
-    gibbsSamplingWithSimulatedAnnealing(reference,
-            chains, zMatrix, permutationNumber, NULL, 1);
+    greedyImprovement(reference, chains, zMatrix, permutationNumber);
+
     /*
      * Print out the median genome,
      * as a list.
