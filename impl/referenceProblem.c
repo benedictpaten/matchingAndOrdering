@@ -112,16 +112,16 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
     float *_3PrimeZs = &(z[nodeNumber * _3Node]);
     for (int32_t i = 0; i < stList_length(reference); i++) {
         ReferenceInterval *referenceInterval = stList_get(reference, i);
-        double positiveScoreBack = _3PrimeZs[referenceInterval->_5Node]; //z[referenceInterval->_5Node * nodeNumber + _3Node]; //Add the score of the 3 prime end of the interval to the 3 prime most insertion point
-        double negativeScoreBack = _5PrimeZs[referenceInterval->_5Node]; //z[referenceInterval->_5Node * nodeNumber + _5Node];
-        positiveScores[0] = _5PrimeZs[referenceInterval->_3Node];//z[referenceInterval->_3Node * nodeNumber + _5Node];
-        negativeScores[0] = _3PrimeZs[referenceInterval->_3Node]; //z[referenceInterval->_3Node * nodeNumber + _3Node];
+        double positiveScoreBack = _3PrimeZs[referenceInterval->_5Node]; //Add the score of the 3 prime end of the interval to the 3 prime most insertion point
+        double negativeScoreBack = _5PrimeZs[referenceInterval->_5Node];
+        positiveScores[0] = _5PrimeZs[referenceInterval->_3Node];
+        negativeScores[0] = _3PrimeZs[referenceInterval->_3Node];
         int32_t j = 0;
         while (referenceInterval->nReferenceInterval != NULL) {
             referenceInterval = referenceInterval->nReferenceInterval;
             j++;
-            positiveScores[j] = positiveScores[j - 1] + _5PrimeZs[referenceInterval->_3Node];//z[referenceInterval->_3Node * nodeNumber + _5Node];
-            negativeScores[j] = negativeScores[j - 1] + _3PrimeZs[referenceInterval->_3Node];//z[referenceInterval->_3Node * nodeNumber + _3Node];
+            positiveScores[j] = positiveScores[j - 1] + _5PrimeZs[referenceInterval->_3Node];
+            negativeScores[j] = negativeScores[j - 1] + _3PrimeZs[referenceInterval->_3Node];
         }
         positiveScores[j] += positiveScoreBack; //Add the score of the 3 prime end of the interval to the 3 prime most insertion point
         negativeScores[j] += negativeScoreBack;
@@ -142,11 +142,11 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
             }
             j--;
             assert(j >= 0);
-            assert(_3PrimeZs[referenceInterval->_5Node] >= 0); //z[referenceInterval->_5Node * nodeNumber + _3Node] >= 0);
-            positiveScoreBack += _3PrimeZs[referenceInterval->_5Node]; //z[referenceInterval->_5Node * nodeNumber + _3Node];
+            assert(_3PrimeZs[referenceInterval->_5Node] >= 0);
+            positiveScoreBack += _3PrimeZs[referenceInterval->_5Node];
             positiveScores[j] += positiveScoreBack;
-            assert(_5PrimeZs[referenceInterval->_5Node] >= 0); //z[referenceInterval->_5Node * nodeNumber + _5Node] >= 0);
-            negativeScoreBack += _5PrimeZs[referenceInterval->_5Node]; //z[referenceInterval->_5Node * nodeNumber + _5Node];
+            assert(_5PrimeZs[referenceInterval->_5Node] >= 0);
+            negativeScoreBack += _5PrimeZs[referenceInterval->_5Node];
             negativeScores[j] += negativeScoreBack;
             referenceInterval = referenceInterval->pReferenceInterval;
         }
@@ -158,7 +158,7 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
     return maxReferenceIntervalInsertion;
 }
 
-static void insert(ReferenceIntervalInsertion *referenceIntervalInsertion) {
+static ReferenceInterval *insert(ReferenceIntervalInsertion *referenceIntervalInsertion) {
     /*
      * Inserts a chain into a reference interval.
      */
@@ -171,6 +171,7 @@ static void insert(ReferenceIntervalInsertion *referenceIntervalInsertion) {
         referenceIntervalInsertion->referenceInterval->nReferenceInterval->pReferenceInterval = newInterval;
     }
     referenceIntervalInsertion->referenceInterval->nReferenceInterval = newInterval;
+    return newInterval;
 }
 
 stList *makeReferenceGreedily(stList *stubs, stList *chainsList, float *z, int32_t nodeNumber, double *totalScore, bool fast) {
@@ -247,35 +248,43 @@ stList *makeReferenceGreedily(stList *stubs, stList *chainsList, float *z, int32
     return reference;
 }
 
-static void removeChainFromReference(stIntTuple *chain, stList *reference) {
+static void removeChainFromReference(stIntTuple *chain, stList *reference, stHash *referenceIntervalToChainHash) {
     /*
      * Remove chain from the reference.
      */
-    int32_t _5Node = stIntTuple_getPosition(chain, 0);
-    int32_t _3Node = stIntTuple_getPosition(chain, 1);
-    assert(_5Node != _3Node);
+    ReferenceInterval *referenceInterval = stHash_search(referenceIntervalToChainHash, chain);
+    assert(referenceInterval != NULL);
+    assert(referenceInterval->pReferenceInterval != NULL);
+    referenceInterval->pReferenceInterval->nReferenceInterval = referenceInterval->nReferenceInterval;
+    if (referenceInterval->nReferenceInterval) {
+        referenceInterval->nReferenceInterval->pReferenceInterval = referenceInterval->pReferenceInterval;
+    }
+    stHash_removeAndFreeKey(referenceIntervalToChainHash, chain);
+    stIntTuple *inverseChain = stIntTuple_construct(2, stIntTuple_getPosition(chain, 1), stIntTuple_getPosition(chain, 0));
+    stHash_removeAndFreeKey(referenceIntervalToChainHash, inverseChain);
+    stIntTuple_destruct(inverseChain);
+    free(referenceInterval);
+}
+
+static void addChainToReferenceIntervalHash(ReferenceInterval *referenceInterval, stHash *referenceIntervalToChainHash) {
+    assert(referenceInterval->_5Node != referenceInterval->_3Node);
+                stIntTuple *chainForward = stIntTuple_construct(2, referenceInterval->_5Node, referenceInterval->_3Node);
+                stIntTuple *chainBackward = stIntTuple_construct(2, referenceInterval->_3Node, referenceInterval->_5Node);
+                stHash_insert(referenceIntervalToChainHash, chainForward, referenceInterval);
+                stHash_insert(referenceIntervalToChainHash, chainBackward, referenceInterval);
+}
+
+static stHash *getChainToReferenceIntervalHash(stList *reference) {
+    stHash *referenceIntervalToChainHash = stHash_construct3((uint32_t(*)(const void *)) stIntTuple_hashKey,
+            (int(*)(const void *, const void *)) stIntTuple_equalsFn, (void(*)(void *)) stIntTuple_destruct, NULL);
     for (int32_t i = 0; i < stList_length(reference); i++) {
         ReferenceInterval *referenceInterval = stList_get(reference, i);
-        ReferenceInterval *pReferenceInterval = NULL;
-        while (referenceInterval != NULL) {
-            assert(referenceInterval->_3Node != referenceInterval->_5Node);
-            if (referenceInterval->_5Node == _5Node || referenceInterval->_5Node == _3Node) {
-                assert(referenceInterval->_3Node == _5Node || referenceInterval->_3Node == _3Node);
-                assert(pReferenceInterval != NULL);
-                pReferenceInterval->nReferenceInterval = referenceInterval->nReferenceInterval;
-                if (referenceInterval->nReferenceInterval) {
-                    referenceInterval->nReferenceInterval->pReferenceInterval = pReferenceInterval;
-                }
-                free(referenceInterval);
-                return;
-            } else {
-                assert(referenceInterval->_3Node != _3Node && referenceInterval->_3Node != _3Node);
-            }
-            pReferenceInterval = referenceInterval;
+        do {
+            addChainToReferenceIntervalHash(referenceInterval, referenceIntervalToChainHash);
             referenceInterval = referenceInterval->nReferenceInterval;
-        }
+        } while (referenceInterval != NULL);
     }
-    assert(0);
+    return referenceIntervalToChainHash;
 }
 
 void greedyImprovement(stList *reference, stList *chains, float *z, int32_t permutations) {
@@ -286,16 +295,19 @@ void greedyImprovement(stList *reference, stList *chains, float *z, int32_t perm
     chains = stList_copy(chains, NULL);
     double *positiveScores = st_malloc(nodeNumber * sizeof(double));
     double *negativeScores = st_malloc(nodeNumber * sizeof(double));
+    stHash *referenceIntervalToChainHash = getChainToReferenceIntervalHash(reference);
     for (int32_t k = 0; k < permutations; k++) {
         stList_shuffle(chains);
         for (int32_t i = 0; i < stList_length(chains); i++) {
             stIntTuple *chain = stList_get(chains, i);
-            removeChainFromReference(chain, reference);
+            removeChainFromReference(chain, reference, referenceIntervalToChainHash);
             ReferenceIntervalInsertion referenceIntervalInsertion = getMaxReferenceIntervalInsertion(reference, chain, z, nodeNumber,
                     positiveScores, negativeScores);
-            insert(&referenceIntervalInsertion);
+            ReferenceInterval *newReferenceInterval = insert(&referenceIntervalInsertion);
+            addChainToReferenceIntervalHash(newReferenceInterval, referenceIntervalToChainHash);
         }
     }
+    stHash_destruct(referenceIntervalToChainHash);
     stList_destruct(chains);
     free(positiveScores);
     free(negativeScores);
@@ -474,11 +486,12 @@ void gibbsSamplingWithSimulatedAnnealing(stList *reference, stList *chains, floa
      */
     int32_t nodeNumber = (stList_length(reference) + stList_length(chains)) * 2;
     chains = stList_copy(chains, NULL);
+    stHash *referenceIntervalToChainHash = getChainToReferenceIntervalHash(reference);
     for (int32_t k = 0; k < permutations; k++) {
         stList_shuffle(chains);
         for (int32_t i = 0; i < stList_length(chains); i++) {
             stIntTuple *chain = stList_get(chains, i);
-            removeChainFromReference(chain, reference);
+            removeChainFromReference(chain, reference, referenceIntervalToChainHash);
             /*
              * Now find a new place to insert it.
              */
@@ -506,7 +519,8 @@ void gibbsSamplingWithSimulatedAnnealing(stList *reference, stList *chains, floa
             for (int32_t j = 0; j < l; j++) {
                 chosenScore -= normalScores[j];
                 if (chosenScore < 0 || j == l - 1) {
-                    insert(stList_get(referenceIntervalInsertions, j));
+                    ReferenceInterval *newReferenceInterval = insert(stList_get(referenceIntervalInsertions, j));
+                    addChainToReferenceIntervalHash(newReferenceInterval, referenceIntervalToChainHash);
                     break;
                 }
             }
@@ -515,6 +529,7 @@ void gibbsSamplingWithSimulatedAnnealing(stList *reference, stList *chains, floa
             stList_destruct(referenceIntervalInsertions);
         }
     }
+    stHash_destruct(referenceIntervalToChainHash);
     stList_destruct(chains);
 }
 
