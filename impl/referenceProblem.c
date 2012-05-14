@@ -108,18 +108,20 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
     int64_t maxScore = INT64_MIN;
     bool maxOrientation = 0;
     ReferenceInterval *maxReferenceInterval = NULL;
+    float *_5PrimeZs = &(z[nodeNumber * _5Node]);
+    float *_3PrimeZs = &(z[nodeNumber * _3Node]);
     for (int32_t i = 0; i < stList_length(reference); i++) {
         ReferenceInterval *referenceInterval = stList_get(reference, i);
-        double positiveScoreBack = z[referenceInterval->_5Node * nodeNumber + _3Node]; //Add the score of the 3 prime end of the interval to the 3 prime most insertion point
-        double negativeScoreBack = z[referenceInterval->_5Node * nodeNumber + _5Node];
-        positiveScores[0] = z[referenceInterval->_3Node * nodeNumber + _5Node];
-        negativeScores[0] = z[referenceInterval->_3Node * nodeNumber + _3Node];
+        double positiveScoreBack = _3PrimeZs[referenceInterval->_5Node]; //z[referenceInterval->_5Node * nodeNumber + _3Node]; //Add the score of the 3 prime end of the interval to the 3 prime most insertion point
+        double negativeScoreBack = _5PrimeZs[referenceInterval->_5Node]; //z[referenceInterval->_5Node * nodeNumber + _5Node];
+        positiveScores[0] = _5PrimeZs[referenceInterval->_3Node];//z[referenceInterval->_3Node * nodeNumber + _5Node];
+        negativeScores[0] = _3PrimeZs[referenceInterval->_3Node]; //z[referenceInterval->_3Node * nodeNumber + _3Node];
         int32_t j = 0;
         while (referenceInterval->nReferenceInterval != NULL) {
             referenceInterval = referenceInterval->nReferenceInterval;
             j++;
-            positiveScores[j] = z[referenceInterval->_3Node * nodeNumber + _5Node] + positiveScores[j - 1];
-            negativeScores[j] = z[referenceInterval->_3Node * nodeNumber + _3Node] + negativeScores[j - 1];
+            positiveScores[j] = positiveScores[j - 1] + _5PrimeZs[referenceInterval->_3Node];//z[referenceInterval->_3Node * nodeNumber + _5Node];
+            negativeScores[j] = negativeScores[j - 1] + _3PrimeZs[referenceInterval->_3Node];//z[referenceInterval->_3Node * nodeNumber + _3Node];
         }
         positiveScores[j] += positiveScoreBack; //Add the score of the 3 prime end of the interval to the 3 prime most insertion point
         negativeScores[j] += negativeScoreBack;
@@ -140,11 +142,11 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
             }
             j--;
             assert(j >= 0);
-            assert(z[referenceInterval->_5Node * nodeNumber + _3Node] >= 0);
-            positiveScoreBack += z[referenceInterval->_5Node * nodeNumber + _3Node];
+            assert(_3PrimeZs[referenceInterval->_5Node] >= 0); //z[referenceInterval->_5Node * nodeNumber + _3Node] >= 0);
+            positiveScoreBack += _3PrimeZs[referenceInterval->_5Node]; //z[referenceInterval->_5Node * nodeNumber + _3Node];
             positiveScores[j] += positiveScoreBack;
-            assert(z[referenceInterval->_5Node * nodeNumber + _5Node] >= 0);
-            negativeScoreBack += z[referenceInterval->_5Node * nodeNumber + _5Node];
+            assert(_5PrimeZs[referenceInterval->_5Node] >= 0); //z[referenceInterval->_5Node * nodeNumber + _5Node] >= 0);
+            negativeScoreBack += _5PrimeZs[referenceInterval->_5Node]; //z[referenceInterval->_5Node * nodeNumber + _5Node];
             negativeScores[j] += negativeScoreBack;
             referenceInterval = referenceInterval->pReferenceInterval;
         }
