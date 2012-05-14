@@ -10,7 +10,7 @@
 #include "stMatchingAlgorithms.h"
 #include "stCheckEdges.h"
 
-static void fn(double *zMatrix, int32_t nodeNumber,  double theta, int32_t node1, int32_t node2,
+static void fn(float *zMatrix, int32_t nodeNumber,  double theta, int32_t node1, int32_t node2,
         int32_t adjacencyLength, int32_t node1Length, int32_t node2Length, int32_t degree) {
     double d = degree * calculateZScore(node1Length, node2Length, adjacencyLength, theta);
     assert(node1 != node2);
@@ -47,7 +47,7 @@ static void testADBDCExample(
     stList_append(chains, stIntTuple_construct(2, _5B, _3B));
     stList_append(chains, stIntTuple_construct(2, _5D, _3D));
 
-    double *zMatrix = st_calloc(nodeNumber*nodeNumber, sizeof(double));
+    float *zMatrix = st_calloc(nodeNumber*nodeNumber, sizeof(float));
 
     fn(zMatrix, nodeNumber, theta, A, _5B, 2*adjacencyLength + DL, AL, BL, n-1);
     fn(zMatrix, nodeNumber, theta, A, _3B, 2*adjacencyLength + DL, AL, BL, 1);

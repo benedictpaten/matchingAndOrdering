@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
      * Parse in the chain weights as a list
      * of the form end1, end2, weight
      */
-    double *zMatrix = st_calloc((nodeNumber)*(nodeNumber), sizeof(double));
+    float *zMatrix = st_calloc((nodeNumber)*(nodeNumber), sizeof(float));
     int32_t weightNumber;
     i = scanf("%i", &weightNumber);
     assert(i == 1);

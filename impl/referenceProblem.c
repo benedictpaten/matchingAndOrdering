@@ -52,7 +52,7 @@ static ReferenceIntervalInsertion *referenceIntervalInsertion_construct(stIntTup
     return referenceIntervalInsertion;
 }
 
-static double referenceIntervalInsertion_isConnectedLeft(ReferenceIntervalInsertion *referenceIntervalInsertion, double *z,
+static double referenceIntervalInsertion_isConnectedLeft(ReferenceIntervalInsertion *referenceIntervalInsertion, float *z,
         int32_t nodeNumber) {
     int32_t _5Node = stIntTuple_getPosition(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 0 : 1);
     assert(referenceIntervalInsertion->referenceInterval != NULL);
@@ -72,7 +72,7 @@ static int32_t referenceInterval_get5Node(ReferenceInterval *referenceInterval) 
     return referenceInterval->_5Node;
 }
 
-static double referenceIntervalInsertion_isConnectedRight(ReferenceIntervalInsertion *referenceIntervalInsertion, double *z,
+static double referenceIntervalInsertion_isConnectedRight(ReferenceIntervalInsertion *referenceIntervalInsertion, float *z,
         int32_t nodeNumber) {
     int32_t _3Node = stIntTuple_getPosition(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 1 : 0);
     int32_t _5Node = referenceInterval_get5Node(referenceIntervalInsertion->referenceInterval);
@@ -80,7 +80,7 @@ static double referenceIntervalInsertion_isConnectedRight(ReferenceIntervalInser
     return z[_5Node * nodeNumber + _3Node] > 0.0 ? 1 : 0;
 }
 
-static double referenceIntervalInsertion_isCurrentlyConnected(ReferenceIntervalInsertion *referenceIntervalInsertion, double *z,
+static double referenceIntervalInsertion_isCurrentlyConnected(ReferenceIntervalInsertion *referenceIntervalInsertion, float *z,
         int32_t nodeNumber) {
     assert(referenceIntervalInsertion->referenceInterval != NULL);
     int32_t _3Node = referenceIntervalInsertion->referenceInterval->_3Node;
@@ -89,14 +89,14 @@ static double referenceIntervalInsertion_isCurrentlyConnected(ReferenceIntervalI
     return z[_5Node * nodeNumber + _3Node] > 0.0 ? 1 : 0;
 }
 
-static double referenceIntervalInsertion_connectionScore(ReferenceIntervalInsertion *referenceIntervalInsertion, double *z,
+static double referenceIntervalInsertion_connectionScore(ReferenceIntervalInsertion *referenceIntervalInsertion, float *z,
         int32_t nodeNumber) {
     return referenceIntervalInsertion_isConnectedLeft(referenceIntervalInsertion, z, nodeNumber)
             + referenceIntervalInsertion_isConnectedRight(referenceIntervalInsertion, z, nodeNumber)
             - referenceIntervalInsertion_isCurrentlyConnected(referenceIntervalInsertion, z, nodeNumber);
 }
 
-static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *reference, stIntTuple *chain, double *z,
+static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *reference, stIntTuple *chain, float *z,
         int32_t nodeNumber, double *positiveScores, double *negativeScores) {
     /*
      * Calculates the scores of the inserting the chain at each possible position in the reference.
@@ -165,7 +165,7 @@ static void insert(ReferenceIntervalInsertion *referenceIntervalInsertion) {
     referenceIntervalInsertion->referenceInterval->nReferenceInterval = newInterval;
 }
 
-stList *makeReferenceGreedily(stList *stubs, stList *chainsList, double *z, int32_t nodeNumber, double *totalScore, bool fast) {
+stList *makeReferenceGreedily(stList *stubs, stList *chainsList, float *z, int32_t nodeNumber, double *totalScore, bool fast) {
     /*
      * Constructs a reference greedily, by picking a best possible insertion
      * at each of the |R| steps.
@@ -270,7 +270,7 @@ static void removeChainFromReference(stIntTuple *chain, stList *reference) {
     assert(0);
 }
 
-void greedyImprovement(stList *reference, stList *chains, double *z, int32_t permutations) {
+void greedyImprovement(stList *reference, stList *chains, float *z, int32_t permutations) {
     /*
      * Update a reference by sampling.
      */
@@ -309,7 +309,7 @@ stList *convertReferenceToAdjacencyEdges(stList *reference) {
     return edges;
 }
 
-double calculateMaxZ(int32_t nodeNumber, double *z) {
+double calculateMaxZ(int32_t nodeNumber, float *z) {
     double maxZ = 0.0;
     for (int32_t i = 0; i < nodeNumber; i++) {
         for (int32_t j = i + 1; j < nodeNumber; j++) {
@@ -321,7 +321,7 @@ double calculateMaxZ(int32_t nodeNumber, double *z) {
     return maxZ;
 }
 
-double calculateZScoreOfReference(stList *reference, int32_t nodeNumber, double *zMatrix) {
+double calculateZScoreOfReference(stList *reference, int32_t nodeNumber, float *zMatrix) {
     double totalScore = 0.0;
     for (int32_t i = 0; i < stList_length(reference); i++) {
         ReferenceInterval *referenceInterval = stList_get(reference, i);
@@ -339,7 +339,7 @@ double calculateZScoreOfReference(stList *reference, int32_t nodeNumber, double 
     return totalScore;
 }
 
-void logZScoreOfReference(stList *reference, int32_t nodeNumber, double *zMatrix) {
+void logZScoreOfReference(stList *reference, int32_t nodeNumber, float *zMatrix) {
     for (int32_t i = 0; i < stList_length(reference); i++) {
         ReferenceInterval *referenceInterval = stList_get(reference, i);
         int32_t j = referenceInterval->_5Node;
@@ -357,7 +357,7 @@ void logZScoreOfReference(stList *reference, int32_t nodeNumber, double *zMatrix
     }
 }
 
-void logReference(stList *reference, int32_t nodeNumber, double *zMatrix, double totalScore, const char *message) {
+void logReference(stList *reference, int32_t nodeNumber, float *zMatrix, double totalScore, const char *message) {
     st_logDebug("Reporting reference with %i intervals, %i nodes and %lf total score out of max score of %lf for %s\n",
             stList_length(reference), nodeNumber, totalScore, calculateMaxZ(nodeNumber, zMatrix), message);
     for (int32_t i = 0; i < stList_length(reference); i++) {
@@ -398,7 +398,7 @@ double constantTemperatureFn(double d) {
  * The following code is redundant to some of that above..
  */
 
-static stList *getReferenceIntervalInsertions(stList *reference, stIntTuple *chain, double *z, int32_t nodeNumber) {
+static stList *getReferenceIntervalInsertions(stList *reference, stIntTuple *chain, float *z, int32_t nodeNumber) {
     /*
      * Calculates the scores of the inserting the chain at each possible position in the reference.
      *
@@ -460,7 +460,7 @@ static stList *getReferenceIntervalInsertions(stList *reference, stIntTuple *cha
     return referenceIntervalInsertions;
 }
 
-void gibbsSamplingWithSimulatedAnnealing(stList *reference, stList *chains, double *z, int32_t permutations, double(*temperature)(double)) {
+void gibbsSamplingWithSimulatedAnnealing(stList *reference, stList *chains, float *z, int32_t permutations, double(*temperature)(double)) {
     /*
      * Update a reference by sampling.
      */

@@ -9,12 +9,12 @@
 #define REFERENCEPROBLEM_H_
 
 stList *makeReferenceGreedily(stList *stubs, stList *chains,
-        double *z, int32_t nodeNumber, double *totalScore, bool fast);
+        float *z, int32_t nodeNumber, double *totalScore, bool fast);
 
-void greedyImprovement(stList *reference, stList *chains, double *z, int32_t permutations);
+void greedyImprovement(stList *reference, stList *chains, float *z, int32_t permutations);
 
 void gibbsSamplingWithSimulatedAnnealing(stList *reference,
-        stList *chains, double *z, int32_t permutations,
+        stList *chains, float *z, int32_t permutations,
         double(*temperature)(double));
 
 stList *convertReferenceToAdjacencyEdges(stList *reference);
@@ -23,13 +23,13 @@ double exponentiallyDecreasingTemperatureFn(double d);
 
 double constantTemperatureFn(double d);
 
-void logReference(stList *reference, int32_t nodeNumber, double *zMatrix, double totalScore, const char *message);
+void logReference(stList *reference, int32_t nodeNumber, float *zMatrix, double totalScore, const char *message);
 
-double calculateZScoreOfReference(stList *reference, int32_t nodeNumber, double *zMatrix);
+double calculateZScoreOfReference(stList *reference, int32_t nodeNumber, float *zMatrix);
 
-void logZScoreOfReference(stList *reference, int32_t nodeNumber, double *zMatrix);
+void logZScoreOfReference(stList *reference, int32_t nodeNumber, float *zMatrix);
 
-double calculateMaxZ(int32_t nodeNumber, double *zMatrix);
+double calculateMaxZ(int32_t nodeNumber, float *zMatrix);
 
 double calculateZScore(int32_t n, int32_t m, int32_t k, double theta);
 

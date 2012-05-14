@@ -15,7 +15,7 @@
 
 static stList *stubs;
 static stList *chains;
-static double *zMatrix;
+static float *zMatrix;
 static int32_t nodeNumber;
 
 static void teardown() {
@@ -47,7 +47,7 @@ static void setup() {
             stList_append(chains, edge);
         }
     }
-    zMatrix = st_calloc(nodeNumber*nodeNumber, sizeof(double));
+    zMatrix = st_calloc(nodeNumber*nodeNumber, sizeof(float));
     for(int32_t i=0; i<nodeNumber; i++) {
         for(int32_t j=i+1; j<nodeNumber; j++) {
             double score = st_random();
