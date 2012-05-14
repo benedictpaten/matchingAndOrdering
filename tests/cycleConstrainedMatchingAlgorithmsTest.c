@@ -368,7 +368,7 @@ static void testGetMatchingWithCyclicConstraints(CuTest *testCase,
     /*
      * Creates random graphs, constructs matchings and checks they are valid.
      */
-    for (int32_t i = 0; i < 100; i++) {
+    for (int32_t i = 0; i < testNumber; i++) {
         setup(maxNodeNumber);
         stList *matching = matchingAlgorithm(adjacencyEdges, nodeNumber);
         stList *greedyMatching = chooseMatching_greedy(adjacencyEdges,
