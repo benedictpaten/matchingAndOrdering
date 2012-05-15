@@ -105,7 +105,7 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
      */
     int32_t _5Node = stIntTuple_getPosition(chain, 0);
     int32_t _3Node = stIntTuple_getPosition(chain, 1);
-    int64_t maxScore = INT64_MIN;
+    double maxScore = INT64_MIN;
     bool maxOrientation = 0;
     ReferenceInterval *maxReferenceInterval = NULL;
     float *_5PrimeZs = &(z[nodeNumber * _5Node]);
