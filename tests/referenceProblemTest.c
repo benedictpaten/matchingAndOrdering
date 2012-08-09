@@ -40,7 +40,7 @@ static void setup() {
     for(int32_t i=0; i<nodeNumber/2; i++) {
         assert(nodeNumber/2 > 0);
         stIntTuple *edge = stIntTuple_construct(2, i, nodeNumber/2 + i);
-        if(stList_length(stubs) == 0 || st_random(stubs) > 0.9) {
+        if(stList_length(stubs) == 0 || st_random() > 0.9) {
             stList_append(stubs, edge);
         }
         else {
