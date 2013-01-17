@@ -11,6 +11,7 @@ CuSuite *matchingAlgorithmsTestSuite(void);
 CuSuite* cyclesConstrainedMatchingAlgorithmsTestSuite(void);
 CuSuite* referenceProblemTestSuite(void);
 CuSuite* referenceProblemExamplesTestSuite(void);
+CuSuite* referenceProblem2TestSuite(void);
 
 int referenceRunAllTests(void) {
     CuString *output = CuStringNew();
@@ -19,6 +20,7 @@ int referenceRunAllTests(void) {
     CuSuiteAddSuite(suite, cyclesConstrainedMatchingAlgorithmsTestSuite());
     CuSuiteAddSuite(suite, referenceProblemTestSuite());
     CuSuiteAddSuite(suite, referenceProblemExamplesTestSuite());
+    CuSuiteAddSuite(suite, referenceProblem2TestSuite());
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
