@@ -10,9 +10,19 @@
 
 #include "sonLib.h"
 
+struct _edge {
+    int32_t to;
+    float weight;
+};
+
 typedef struct _edge edge;
 
 typedef struct _adjList adjList;
+
+struct _adjListIt {
+    stHash *hash;
+    stHashIterator *it;
+};
 
 typedef struct _adjListIt adjListIt;
 
@@ -21,6 +31,7 @@ typedef struct _reference reference;
 /*
  * Adjacency list structure/edge structure
  */
+//Negative value indicates the 3' end of segment, positive value indicates 5 prime end.
 
 edge edge_construct(int32_t to, float weight);
 
@@ -56,7 +67,10 @@ reference *reference_construct();
 
 void reference_destruct(reference *ref);
 
+//Need to make one or more intervals before you can insert other nodes into reference.
 void reference_makeNewInterval(reference *ref, int32_t leftNode, int32_t rightNode);
+
+void reference_insertNode(reference *ref, int32_t pNode, int32_t node);
 
 bool reference_inGraph(reference *ref, int32_t n);
 
