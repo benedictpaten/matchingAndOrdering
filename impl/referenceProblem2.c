@@ -88,7 +88,7 @@ float adjList_getWeight(adjList *aL, int32_t n1, int32_t n2) {
     return weight == NULL ? 0.0 : weight[0];
 }
 
-static void adjList_setWeightP(adjList *aL, int32_t n1, int32_t n2, float weight) {
+static void adjList_setWeightP(adjList *aL, int32_t n1, int32_t n2, float weight, bool addToWeight) {
     stHash *edges = aL->edgeHashes[convertN(aL, n1)];
     checkN(n2, aL->nodeNumber);
     stIntTuple *i = stIntTuple_construct(1, n2);
@@ -96,15 +96,21 @@ static void adjList_setWeightP(adjList *aL, int32_t n1, int32_t n2, float weight
     if (w == NULL) {
         w = st_malloc(sizeof(float));
         stHash_insert(edges, i, w);
+        w[0] = weight;
     } else {
         stIntTuple_destruct(i);
+        w[0] = addToWeight ? w[0] + weight : weight;
     }
-    w[0] = weight;
 }
 
 void adjList_setWeight(adjList *aL, int32_t n1, int32_t n2, float weight) {
-    adjList_setWeightP(aL, n1, n2, weight);
-    adjList_setWeightP(aL, n2, n1, weight);
+    adjList_setWeightP(aL, n1, n2, weight, 0);
+    adjList_setWeightP(aL, n2, n1, weight, 0);
+}
+
+void adjList_addToWeight(adjList *aL, int32_t n1, int32_t n2, float weight) {
+    adjList_setWeightP(aL, n1, n2, weight, 1);
+    adjList_setWeightP(aL, n2, n1, weight, 1);
 }
 
 adjListIt adjList_getEdgeIt(adjList *aL, int32_t node) {

@@ -50,7 +50,7 @@ static void setup() {
     }
 
     for (int32_t i = 0; i < weightNumber; i++) {
-        adjList_setWeight(aL, getRandomNode(nodeNumber), getRandomNode(nodeNumber), st_random());
+        adjList_addToWeight(aL, getRandomNode(nodeNumber), getRandomNode(nodeNumber), st_random());
     }
     st_logDebug("To test the adjacency problem we've created a problem with %i nodes, %i intervals and %i weights\n", nodeNumber,
             intervalNumber, weightNumber);

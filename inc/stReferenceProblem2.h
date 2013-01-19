@@ -49,6 +49,8 @@ float adjList_getWeight(adjList *aL, int32_t n1, int32_t n2);
 
 void adjList_setWeight(adjList *aL, int32_t n1, int32_t n2, float weight);
 
+void adjList_addToWeight(adjList *aL, int32_t n1, int32_t n2, float weight);
+
 adjListIt adjList_getEdgeIt(adjList *aL, int32_t node);
 
 edge adjListIt_getNext(adjListIt *it);
