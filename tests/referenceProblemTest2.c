@@ -17,7 +17,7 @@ static reference *ref;
 static int32_t nodeNumber;
 static int32_t intervalNumber;
 static int32_t weightNumber;
-static int32_t testNumber = 10;
+static int32_t testNumber = 20;
 
 static void teardown() {
     if (aL != NULL) {
@@ -106,7 +106,6 @@ static void testAdjList(CuTest *testCase) {
                 for(int32_t n2=n1; n2<=nodeNumber; n2++) {
                     if(n2 != 0) {
                         float w = st_random();
-                        //st_uglyf("Making weight between %i  %i %f\n", n1, n2, w);
                         adjList_setWeight(aL, n1, n2, w);
                         totalWeight += w;
                     }

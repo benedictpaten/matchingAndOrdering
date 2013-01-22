@@ -35,7 +35,15 @@ static edge *edge_copy(edge *e) {
     return e2;
 }
 
-static int edge_cmp(edge *e1, edge *e2, reference *ref) {
+static int edge_cmpByNode(edge *e1, edge *e2) {
+    return e1->to > e2->to ? 1 : (e1->to < e2->to ? -1 : 0);
+}
+
+static int edge_cmpByWeight(edge *e1, edge *e2) {
+    return e1->weight > e2->weight ? 1 : (e1->weight < e2->weight ? -1 : edge_cmpByNode(e1, e2));
+}
+
+static int edge_cmpByReferencePosition(edge *e1, edge *e2, reference *ref) {
     return reference_cmp(ref, edge_to(e1), edge_to(e2));
 }
 
@@ -311,7 +319,9 @@ void reference_insertNode(reference *ref, int32_t pNode, int32_t node) {
 }
 
 static void reference_insertNode2(reference *ref, insertPoint *iP) {
-    reference_insertNode(ref, insertPoint_previous(iP) ? insertPoint_adjNode(iP) : reference_getPrevious(ref, insertPoint_adjNode(iP)), insertPoint_node(iP));
+    reference_insertNode(ref,
+            insertPoint_previous(iP) ? insertPoint_adjNode(iP) : reference_getPrevious(ref, insertPoint_adjNode(iP)),
+            insertPoint_node(iP));
 }
 
 static void reference_removeNode(reference *ref, int32_t n) {
@@ -378,6 +388,86 @@ void reference_log(reference *ref) {
 }
 
 /*
+ * Structure for recording segments connected to segments in the reference but not actually in the reference.
+ */
+
+struct _connectedNodes {
+    stSortedSet *byWeight;
+    stSortedSet *byNode;
+    adjList *aL;
+    reference *ref;
+};
+
+typedef struct _connectedNodes connectedNodes;
+
+static void connectedNodes_addNode(connectedNodes *cN, int32_t n) {
+    /*
+     * Adds nodes not in reference to set of connected nodes.
+     */
+    adjListIt it = adjList_getEdgeIt(cN->aL, n);
+    edge e = adjListIt_getNext(&it);
+    while (edge_to(&e) != INT32_MAX) {
+        if (!reference_inGraph(cN->ref, edge_to(&e))) {
+            e = edge_construct(abs(edge_to(&e)), edge_weight(&e));
+            edge *e2 = stSortedSet_search(cN->byNode, &e);
+            if (e2 == NULL) {
+                e2 = edge_copy(&e);
+                stSortedSet_insert(cN->byNode, e2);
+            } else {
+                assert(stSortedSet_search(cN->byWeight, e2) == e2);
+                stSortedSet_remove(cN->byWeight, e2);
+                e2->weight += edge_weight(e2);
+            }
+            stSortedSet_insert(cN->byWeight, e2);
+        }
+        e = adjListIt_getNext(&it);
+    }
+    adjListIt_destruct(&it);
+}
+
+static connectedNodes *connectedNodes_construct(adjList *aL, reference *ref) {
+    /*
+     * Builds the set of nodes connected to nodes in the reference but not currently in the reference.
+     */
+    connectedNodes *cN = st_malloc(sizeof(connectedNodes));
+    cN->byWeight = stSortedSet_construct3((int(*)(const void *, const void *)) edge_cmpByWeight, free);
+    cN->byNode = stSortedSet_construct3((int(*)(const void *, const void *)) edge_cmpByNode, NULL);
+    cN->aL = aL;
+    cN->ref = ref;
+    for (int32_t i = 0; i < reference_getIntervalNumber(ref); i++) {
+        int32_t n = reference_getFirstOfInterval(ref, i);
+        while (n != INT32_MAX) {
+            connectedNodes_addNode(cN, n);
+            n = reference_getNext(ref, n);
+        }
+    }
+    return cN;
+}
+
+static void connectedNodes_destruct(connectedNodes *cN) {
+    stSortedSet_destruct(cN->byNode);
+    stSortedSet_destruct(cN->byWeight);
+    free(cN);
+}
+
+static bool connectedNodes_empty(connectedNodes *cN) {
+    return stSortedSet_size(cN->byNode) == 0;
+}
+
+static int32_t connectedNodes_pop(connectedNodes *cN) {
+    assert(stSortedSet_size(cN->byWeight) >= 0);
+    assert(stSortedSet_size(cN->byWeight) == stSortedSet_size(cN->byNode));
+    edge *e = stSortedSet_getLast(cN->byWeight);
+    assert(edge_weight(e) >= edge_weight(stSortedSet_getFirst(cN->byWeight)));
+    stSortedSet_remove(cN->byWeight, e);
+    assert(stSortedSet_search(cN->byNode, e) == e);
+    stSortedSet_remove(cN->byNode, e);
+    int32_t n = edge_to(e);
+    free(e);
+    return n;
+}
+
+/*
  * Reference algorithm
  */
 
@@ -395,7 +485,7 @@ static stList *getRelevantEdges(adjList *aL, reference *ref, int32_t n) {
     }
     adjListIt_destruct(&it);
     //Now do sorting to determine ordering
-    stList_sort2(edges, (int(*)(const void *, const void *, const void *)) edge_cmp, ref);
+    stList_sort2(edges, (int(*)(const void *, const void *, const void *)) edge_cmpByReferencePosition, ref);
     return edges;
 }
 
@@ -431,7 +521,8 @@ static void getInsertPointsNext(int32_t n, stList *edges, reference *ref, stList
     }
 }
 
-static void getInsertionPoints(int32_t n, stList *previousEdges, stList *nextEdges, reference *ref, adjList *aL, stList *insertPoints) {
+static void getInsertionPoints(int32_t n, stList *previousEdges, stList *nextEdges, reference *ref, adjList *aL,
+        stList *insertPoints) {
     stList *insertPoints2 = stList_construct();
     getInsertPointsPrevious(n, previousEdges, ref, insertPoints2);
     getInsertPointsNext(n, nextEdges, ref, insertPoints2);
@@ -439,15 +530,19 @@ static void getInsertionPoints(int32_t n, stList *previousEdges, stList *nextEdg
     for (int32_t i = 1; i < stList_length(insertPoints2); i++) {
         insertPoint *iPP = stList_get(insertPoints2, i - 1);
         insertPoint *iPN = stList_get(insertPoints2, i);
-        if (reference_getFirst(ref, insertPoint_adjNode(iPP))
-                == reference_getFirst(ref, insertPoint_adjNode(iPN)) &&
-                insertPoint_previous(iPP) && !insertPoint_previous(iPN)) {
-            if (adjList_getWeight(aL, n, insertPoint_adjNode(iPP)) > adjList_getWeight(aL, -n, insertPoint_adjNode(iPN))) {
-                stList_append(insertPoints,
-                        insertPoint_construct(n, insertPoint_adjNode(iPP), 1, insertPoint_score(iPP) + insertPoint_score(iPN)));
+        if (reference_getFirst(ref, insertPoint_adjNode(iPP)) == reference_getFirst(ref, insertPoint_adjNode(iPN))
+                && insertPoint_previous(iPP) && !insertPoint_previous(iPN)) {
+            if (adjList_getWeight(aL, n, insertPoint_adjNode(iPP))
+                    > adjList_getWeight(aL, -n, insertPoint_adjNode(iPN))) {
+                stList_append(
+                        insertPoints,
+                        insertPoint_construct(n, insertPoint_adjNode(iPP), 1,
+                                insertPoint_score(iPP) + insertPoint_score(iPN)));
             } else {
-                stList_append(insertPoints,
-                        insertPoint_construct(n, insertPoint_adjNode(iPN), 0, insertPoint_score(iPP) + insertPoint_score(iPN)));
+                stList_append(
+                        insertPoints,
+                        insertPoint_construct(n, insertPoint_adjNode(iPN), 0,
+                                insertPoint_score(iPP) + insertPoint_score(iPN)));
             }
         }
     }
@@ -472,11 +567,10 @@ static void insertNode(int32_t n, adjList *aL, reference *ref) {
                 bestIP = iP;
             }
         }
-        if(bestIP == NULL) { //Make up a location
+        if (bestIP == NULL) { //Make up a location
             st_logDebug("Got a node with no edges linking it into the graph\n");
             reference_insertNode(ref, reference_getFirstOfInterval(ref, 0), n);
-        }
-        else {
+        } else {
             reference_insertNode2(ref, bestIP);
         }
         //Cleanup
@@ -486,17 +580,34 @@ static void insertNode(int32_t n, adjList *aL, reference *ref) {
     }
 }
 
+/*
+ * Actual algorithms to make the reference.
+ */
+
 void makeReferenceGreedily2(adjList *aL, reference *ref) {
     assert(reference_getIntervalNumber(ref) > 0 || adjList_getNodeNumber(aL) == 0);
+    connectedNodes *cN = connectedNodes_construct(aL, ref);
+    int32_t i = 0;
+    while (!connectedNodes_empty(cN)) {
+        int32_t n = connectedNodes_pop(cN);
+        assert(!reference_inGraph(ref, n));
+        insertNode(n, aL, ref);
+        connectedNodes_addNode(cN, n);
+        connectedNodes_addNode(cN, -n);
+        i++;
+    }
+    st_logDebug("We added %i connected nodes to the reference of %i nodes\n", i, adjList_getNodeNumber(aL));
+    //Iterate over the nodes to check any nodes that are not in the reference
     for (int32_t n = 1; n <= adjList_getNodeNumber(aL); n++) {
         insertNode(n, aL, ref);
     }
+    connectedNodes_destruct(cN);
 }
 
 void updateReferenceGreedily(adjList *aL, reference *ref, int32_t permutations) {
     for (int32_t i = 0; i < permutations; i++) {
         for (int32_t j = 1; j <= adjList_getNodeNumber(aL); j++) {
-            int32_t n = st_randomInt(1, adjList_getNodeNumber(aL)+1);
+            int32_t n = st_randomInt(1, adjList_getNodeNumber(aL) + 1);
             assert(reference_inGraph(ref, n));
             reference_removeNode(ref, n);
             if (!reference_inGraph(ref, n)) {
@@ -512,9 +623,8 @@ static double getSumOfConsistentAdjacenciesScore(int32_t n, adjList *aL, referen
     adjListIt it = adjList_getEdgeIt(aL, n);
     edge e = adjListIt_getNext(&it);
     while (edge_to(&e) != INT32_MAX) {
-        if (reference_cmp(ref, n, edge_to(&e)) == -1 &&
-                reference_getFirst(ref, n) == reference_getFirst(ref, edge_to(&e)) &&
-                !reference_getOrientation(ref, n) && reference_getOrientation(ref, edge_to(&e))) {
+        if (reference_cmp(ref, n, edge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref,
+                edge_to(&e)) && !reference_getOrientation(ref, n) && reference_getOrientation(ref, edge_to(&e))) {
             score += edge_weight(&e);
         }
         e = adjListIt_getNext(&it);
