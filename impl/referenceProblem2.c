@@ -67,6 +67,7 @@ void adjList_destruct(adjList *aL) {
     for (int32_t i = 0; i < 2 * aL->nodeNumber; i++) {
         stHash_destruct(aL->edgeHashes[i]);
     }
+    free(aL->edgeHashes);
     free(aL);
 }
 
