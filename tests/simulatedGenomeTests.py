@@ -253,7 +253,7 @@ def runReferenceMedianProblemTest(medianHistory, greedyIterations,theta):
     #Now print out the 
     input = "%i\t%i\t%i\t%i\t%s" % (greedyIterations, nodeNumber, stubNumber, len(weights.keys()), "\t".join([ "%i\t%i\t%f" % (translateLeftSideOfElementToNode(-node1), translateLeftSideOfElementToNode(node2), weights[(node1, node2)]) for (node1, node2) in weights.keys()]))
     #Command
-    command = os.path.join(os.path.split(os.path.abspath(matchingAndOrdering.tests.simulatedGenome.__file__))[0], "testBin", "referenceMedianProblemTest")
+    command = os.path.join(os.path.split(os.path.abspath(matchingAndOrdering.tests.simulatedGenome.__file__))[0], "testBin", "referenceMedianProblemTest2")
     output = popenCatch(command, input)
     medianChromosome = Chromosome()
     for adjacency in output.split():
