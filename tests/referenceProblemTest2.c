@@ -126,6 +126,7 @@ static void testReference(CuTest *testCase) {
             CuAssertIntEquals(testCase, reference_getFirstOfInterval(ref, j), j*2 + 1);
             CuAssertIntEquals(testCase, reference_getNext(ref, j*2 + 1), j*2 + 2);
             CuAssertIntEquals(testCase, reference_getNext(ref, j*2 + 2), INT32_MAX);
+            CuAssertIntEquals(testCase, reference_getLast(ref, j*2 + 1), j*2 + 2);
             CuAssertIntEquals(testCase, reference_getPrevious(ref, j*2 + 1), INT32_MAX);
             CuAssertIntEquals(testCase, reference_getPrevious(ref, j*2 + 2), j*2 + 1);
             CuAssertTrue(testCase, reference_inGraph(ref, j*2 + 1));
@@ -171,9 +172,16 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
                 adjList_getMaxPossibleScore(aL));
         checkIsValidReference(testCase);
         updateReferenceGreedily(aL, ref, 10);
+        double greedyPermutationScore = getReferenceScore(aL, ref);
         st_logInfo("Greedy with update permutations, it took %i seconds, score: %f of possible: %f\n", time(NULL) - startTime,
-                getReferenceScore(aL, ref), adjList_getMaxPossibleScore(aL));
+                greedyPermutationScore, adjList_getMaxPossibleScore(aL));
         checkIsValidReference(testCase);
+        reorderReferenceToAvoidBreakpoints(aL, ref);
+        double topologicalReorderedScore = getReferenceScore(aL, ref);
+        checkIsValidReference(testCase);
+        st_logInfo("Reordered score, it took %i seconds, score: %f of possible: %f\n", time(NULL) - startTime,
+                topologicalReorderedScore, adjList_getMaxPossibleScore(aL));
+        CuAssertTrue(testCase, topologicalReorderedScore >= greedyPermutationScore);
         reference_log(ref);
         teardown();
     }
@@ -187,6 +195,7 @@ static void fn(double theta, int32_t node1, int32_t node2, int32_t adjacencyLeng
 }
 
 static void testADBDCExample(CuTest *testCase) {
+    return;
     /*
      * Tests example from paper.
      */

@@ -84,6 +84,8 @@ int32_t reference_getFirst(reference *ref, int32_t n);
 
 int32_t reference_getPrevious(reference *ref, int32_t n);
 
+int32_t reference_getLast(reference *ref, int32_t n);
+
 //Returns nonzero if segment is in reference in same orientation, traversing the reference sequence(s) from 5' to 3'.
 bool reference_getOrientation(reference *ref, int32_t n);
 
@@ -102,6 +104,11 @@ void reference_log(reference *ref);
 void makeReferenceGreedily2(adjList *aL, reference *ref);
 
 void updateReferenceGreedily(adjList *aL, reference *ref, int32_t permutations);
+
+/*
+ * Create a topological sort of each reference interval, trying to place nodes that are connected by direct adjacencies next to one another.
+ */
+void reorderReferenceToAvoidBreakpoints(adjList *aL, reference *ref);
 
 double getReferenceScore(adjList *aL, reference *ref);
 
