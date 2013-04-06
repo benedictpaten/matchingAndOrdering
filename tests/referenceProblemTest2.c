@@ -168,20 +168,22 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
         setup();
         time_t startTime = time(NULL);
         makeReferenceGreedily2(aL, ref);
-        st_logInfo("Greedy it took %i seconds, score: %f of possible: %f\n", time(NULL) - startTime, getReferenceScore(aL, ref),
-                adjList_getMaxPossibleScore(aL));
+        st_logInfo("Greedy it took %i seconds, score: %f of possible: %f, bad adjacency count: %i\n", time(NULL) - startTime, getReferenceScore(aL, ref),
+                adjList_getMaxPossibleScore(aL), getBadAdjacencyCount(aL, ref));
         checkIsValidReference(testCase);
         updateReferenceGreedily(aL, ref, 10);
         double greedyPermutationScore = getReferenceScore(aL, ref);
-        st_logInfo("Greedy with update permutations, it took %i seconds, score: %f of possible: %f\n", time(NULL) - startTime,
-                greedyPermutationScore, adjList_getMaxPossibleScore(aL));
+        int32_t badAdjacencyCountGreedyPermutations = getBadAdjacencyCount(aL, ref);
+        st_logInfo("Greedy with update permutations, it took %i seconds, score: %f of possible: %f, bad adjacency count: %i\n", time(NULL) - startTime,
+                greedyPermutationScore, adjList_getMaxPossibleScore(aL), badAdjacencyCountGreedyPermutations);
         checkIsValidReference(testCase);
         reorderReferenceToAvoidBreakpoints(aL, ref);
         double topologicalReorderedScore = getReferenceScore(aL, ref);
         checkIsValidReference(testCase);
-        st_logInfo("Reordered score, it took %i seconds, score: %f of possible: %f\n", time(NULL) - startTime,
-                topologicalReorderedScore, adjList_getMaxPossibleScore(aL));
+        st_logInfo("Reordered score, it took %i seconds, score: %f of possible: %f, bad adjacency count: %i\n", time(NULL) - startTime,
+                topologicalReorderedScore, adjList_getMaxPossibleScore(aL), getBadAdjacencyCount(aL, ref));
         CuAssertTrue(testCase, topologicalReorderedScore >= greedyPermutationScore);
+        //CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= badAdjacencyCountGreedyPermutations);
         reference_log(ref);
         teardown();
     }

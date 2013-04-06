@@ -643,6 +643,21 @@ double getReferenceScore(adjList *aL, reference *ref) {
     return score;
 }
 
+int32_t getBadAdjacencyCount(adjList *aL, reference *ref) {
+    int32_t badAdjacencies = 0;
+    for(int32_t i=0; i<reference_getIntervalNumber(ref); i++) {
+        int32_t n = reference_getFirstOfInterval(ref, i);
+        while(n != INT32_MAX) {
+            int32_t m = reference_getNext(ref, n);
+            if(adjList_getWeight(aL, -n, m) == 0.0) {
+                badAdjacencies++;
+            }
+            n = m;
+        }
+    }
+    return badAdjacencies;
+}
+
 static stList *getValidEdges(int32_t n, adjList *aL, reference *ref) {
     /*
      * Get edges from n that are consistent with the reference ordering.

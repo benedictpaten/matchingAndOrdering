@@ -112,4 +112,9 @@ void reorderReferenceToAvoidBreakpoints(adjList *aL, reference *ref);
 
 double getReferenceScore(adjList *aL, reference *ref);
 
+/*
+ * Count of adjacent nodes in reference that have no edge connecting them.
+ */
+int32_t getBadAdjacencyCount(adjList *aL, reference *ref);
+
 #endif /* REFERENCEPROBLEM2_H_ */
