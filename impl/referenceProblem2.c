@@ -656,7 +656,7 @@ int32_t getBadAdjacencyCount(adjList *aL, reference *ref) {
         int32_t n = reference_getFirstOfInterval(ref, i);
         while (n != INT32_MAX) {
             int32_t m = reference_getNext(ref, n);
-            if (adjList_getWeight(aL, -n, m) == 0.0) {
+            if (m != INT32_MAX && adjList_getWeight(aL, -n, m) == 0.0) {
                 badAdjacencies++;
             }
             n = m;
@@ -720,11 +720,13 @@ static void visit(int32_t n, stSortedSet *visited, stSortedSet *visiting, adjLis
             }
             stList_destructIterator(stList_pop(stack));
             stList_destruct(stList_pop(stack));
-            stSortedSet_insert(visited, stList_pop(stack));
+            stIntTuple *i = stList_pop(stack);
+            stSortedSet_insert(visited, i);
+            stList_append(ordering, i);
             if(stList_length(stack) == 0) {
                 break;
             }
-            top: printf("boo");
+            top: ;
         }
     }
 }
