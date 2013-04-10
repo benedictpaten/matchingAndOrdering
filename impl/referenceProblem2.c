@@ -694,9 +694,9 @@ static bool visitP(int32_t n, stSortedSet *visited, stSortedSet *visiting, adjLi
         assert(stSortedSet_search(visiting, i) == NULL); //otherwise we have detected a cycle
         stSortedSet_insert(visiting, i);
         stList *validEdges = getValidEdges(-n, aL, ref); //The minus sign is because we seek edges incident with the righthand side of the segment.
+        stList_sort(validEdges, (int (*)(const void *, const void *))edge_cmpByWeight);
         stList_append(stack, i);
         stList_append(stack, validEdges);
-        stList_append(stack, stList_getIterator(validEdges));
         return 1;
     }
     else {
@@ -712,14 +712,15 @@ static void visit(int32_t n, stSortedSet *visited, stSortedSet *visiting, adjLis
      */
     if(visitP(n, visited, visiting, aL, ref, ordering, stack)) {
         while(1) {
-            stListIterator *it = stList_peek(stack);
-            edge *e;
-            while ((e = stList_getNext(it)) != NULL) {
-                if(visitP(e->to, visited, visiting, aL, ref, ordering, stack)) {
+            stList *edges = stList_peek(stack);
+            while (stList_length(edges) > 0) {
+                edge *e = stList_pop(edges);
+                int32_t m = e->to;
+                free(e);
+                if(visitP(m, visited, visiting, aL, ref, ordering, stack)) {
                     goto top;
                 }
             }
-            stList_destructIterator(stList_pop(stack));
             stList_destruct(stList_pop(stack));
             stIntTuple *i = stList_pop(stack);
             stSortedSet_insert(visited, i);
