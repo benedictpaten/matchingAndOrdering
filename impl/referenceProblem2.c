@@ -134,6 +134,7 @@ edge adjListIt_getNext(adjListIt *it) {
     stIntTuple *i = stHash_getNext(it->it);
     if (i == NULL) {
         e.to = INT32_MAX;
+        e.weight = INT32_MAX;
     } else {
         e.to = stIntTuple_getPosition(i, 0);
         e.weight = *(float *) stHash_search(it->hash, i);
