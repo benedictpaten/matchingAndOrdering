@@ -180,16 +180,18 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
         reorderReferenceToAvoidBreakpoints(aL, ref);
         double topologicalReorderedScore = getReferenceScore(aL, ref);
         checkIsValidReference(testCase);
+        int32_t topologicalBadAdjacencyCount = getBadAdjacencyCount(aL, ref);
         st_logInfo("Reordered score, it took %i seconds, score: %f of possible: %f, bad adjacency count: %i\n", time(NULL) - startTime,
-                topologicalReorderedScore, adjList_getMaxPossibleScore(aL), getBadAdjacencyCount(aL, ref));
+                topologicalReorderedScore, adjList_getMaxPossibleScore(aL), topologicalBadAdjacencyCount);
         CuAssertTrue(testCase, topologicalReorderedScore >= greedyPermutationScore);
         //CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= badAdjacencyCountGreedyPermutations);
-        nudgeGreedily(aL, ref, 10);
+        nudgeGreedily(aL, ref, 10, 100);
         double nudgeScore = getReferenceScore(aL, ref);
         checkIsValidReference(testCase);
-        CuAssertTrue(testCase, nudgeScore >= topologicalReorderedScore);
         st_logInfo("Nudge score, it took %i seconds, score: %f of possible: %f, bad adjacency count: %i\n", time(NULL) - startTime,
                         nudgeScore, adjList_getMaxPossibleScore(aL), getBadAdjacencyCount(aL, ref));
+        CuAssertTrue(testCase, nudgeScore >= topologicalReorderedScore);
+        //CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= topologicalBadAdjacencyCount);
         reference_log(ref);
         teardown();
     }

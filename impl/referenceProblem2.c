@@ -627,7 +627,7 @@ void updateReferenceGreedily(adjList *aL, reference *ref, int32_t permutations) 
     }
 }
 
-static void nudge(int32_t n, adjList *aL, reference *ref) {
+static void nudge(int32_t n, adjList *aL, reference *ref, int32_t maxNudge) {
     //Setup the best insertion spot
     int32_t bestInsert = INT32_MAX;
     int32_t k = reference_getPrevious(ref, n);
@@ -640,7 +640,8 @@ static void nudge(int32_t n, adjList *aL, reference *ref) {
     //Traverse left
     m = k;
     k = reference_getPrevious(ref, m);
-    while (k != INT32_MAX && adjList_getWeight(aL, -m, n) == 0) { //There is a legitimate place to insert, and we are not contradicting any existing weights.
+    int32_t i = 0;
+    while (k != INT32_MAX && adjList_getWeight(aL, -m, n) == 0 && i < maxNudge) { //There is a legitimate place to insert, and we are not contradicting any existing weights.
         double existingAdjacency2 = adjList_getWeight(aL, -k, m); //Existing weight at insert point
         double newAdjacency2 = adjList_getWeight(aL, -k, n) + adjList_getWeight(aL, -n, m);
         double newScore = newAdjacency2 - existingAdjacency2;
@@ -650,12 +651,14 @@ static void nudge(int32_t n, adjList *aL, reference *ref) {
         }
         m = k;
         k = reference_getPrevious(ref, k);
+        i++;
     }
 
     //Traverse right
     k = reference_getNext(ref, n);
     m = reference_getNext(ref, k);
-    while (m != INT32_MAX && adjList_getWeight(aL, -n, k) == 0) { //There is a legitimate place to insert, and we are not contradicting any existing weights.
+    i = 0;
+    while (m != INT32_MAX && adjList_getWeight(aL, -n, k) == 0 && i < maxNudge) { //There is a legitimate place to insert, and we are not contradicting any existing weights.
         double existingAdjacency2 = adjList_getWeight(aL, -k, m); //Existing weight at insert point
         double newAdjacency2 = adjList_getWeight(aL, -k, n) + adjList_getWeight(aL, -n, m);
         double newScore = newAdjacency2 - existingAdjacency2;
@@ -665,6 +668,7 @@ static void nudge(int32_t n, adjList *aL, reference *ref) {
         }
         k = m;
         m = reference_getNext(ref, m);
+        i++;
     }
 
     if (bestInsert != INT32_MAX) {
@@ -673,14 +677,14 @@ static void nudge(int32_t n, adjList *aL, reference *ref) {
     }
 }
 
-void nudgeGreedily(adjList *aL, reference *ref, int32_t permutations) {
+void nudgeGreedily(adjList *aL, reference *ref, int32_t permutations, int32_t maxNudge) {
     for (int32_t i = 0; i < permutations; i++) {
         for (int32_t j = 0; j < reference_getIntervalNumber(ref); j++) {
             int32_t n = reference_getNext(ref, reference_getFirstOfInterval(ref, j));
             assert(n != INT32_MAX);
             int32_t m;
             while ((m = reference_getNext(ref, n)) != INT32_MAX) {
-                nudge(n, aL, ref);
+                nudge(n, aL, ref, maxNudge);
                 n = m;
             }
         }

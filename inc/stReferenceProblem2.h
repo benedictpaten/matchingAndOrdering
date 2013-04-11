@@ -112,7 +112,10 @@ void reorderReferenceToAvoidBreakpoints(adjList *aL, reference *ref);
 
 double getReferenceScore(adjList *aL, reference *ref);
 
-void nudgeGreedily(adjList *aL, reference *ref, int32_t permutations);
+/*
+ * Nudge the blocks to try to eliminate "bad adjacencies", where to blocks are adjacent but do not have a direct weight between them.
+ */
+void nudgeGreedily(adjList *aL, reference *ref, int32_t permutations, int32_t maxNudge);
 
 /*
  * Count of adjacent nodes in reference that have no edge connecting them.
