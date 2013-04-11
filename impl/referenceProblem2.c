@@ -627,6 +627,66 @@ void updateReferenceGreedily(adjList *aL, reference *ref, int32_t permutations) 
     }
 }
 
+static void nudge(int32_t n, adjList *aL, reference *ref) {
+    //Setup the best insertion spot
+    int32_t bestInsert = INT32_MAX;
+    int32_t k = reference_getPrevious(ref, n);
+    int32_t m = reference_getNext(ref, n);
+    assert(k != INT32_MAX && m != INT32_MAX);
+    double existingAdjacency1 = adjList_getWeight(aL, -k, n) + adjList_getWeight(aL, -n, m);
+    double newAdjacency1 = adjList_getWeight(aL, -k, m);
+    double bestScore = existingAdjacency1 - newAdjacency1;
+
+    //Traverse left
+    m = k;
+    k = reference_getPrevious(ref, m);
+    while (k != INT32_MAX && adjList_getWeight(aL, -m, n) == 0) { //There is a legitimate place to insert, and we are not contradicting any existing weights.
+        double existingAdjacency2 = adjList_getWeight(aL, -k, m); //Existing weight at insert point
+        double newAdjacency2 = adjList_getWeight(aL, -k, n) + adjList_getWeight(aL, -n, m);
+        double newScore = newAdjacency2 - existingAdjacency2;
+        if (newScore > bestScore) {
+            bestScore = newScore;
+            bestInsert = k;
+        }
+        m = k;
+        k = reference_getPrevious(ref, k);
+    }
+
+    //Traverse right
+    k = reference_getNext(ref, n);
+    m = reference_getNext(ref, k);
+    while (m != INT32_MAX && adjList_getWeight(aL, -n, k) == 0) { //There is a legitimate place to insert, and we are not contradicting any existing weights.
+        double existingAdjacency2 = adjList_getWeight(aL, -k, m); //Existing weight at insert point
+        double newAdjacency2 = adjList_getWeight(aL, -k, n) + adjList_getWeight(aL, -n, m);
+        double newScore = newAdjacency2 - existingAdjacency2;
+        if (newScore > bestScore) {
+            bestScore = newScore;
+            bestInsert = k;
+        }
+        k = m;
+        m = reference_getNext(ref, m);
+    }
+
+    if (bestInsert != INT32_MAX) {
+        reference_removeNode(ref, n);
+        reference_insertNode(ref, bestInsert, n);
+    }
+}
+
+void nudgeGreedily(adjList *aL, reference *ref, int32_t permutations) {
+    for (int32_t i = 0; i < permutations; i++) {
+        for (int32_t j = 0; j < reference_getIntervalNumber(ref); j++) {
+            int32_t n = reference_getNext(ref, reference_getFirstOfInterval(ref, j));
+            assert(n != INT32_MAX);
+            int32_t m;
+            while ((m = reference_getNext(ref, n)) != INT32_MAX) {
+                nudge(n, aL, ref);
+                n = m;
+            }
+        }
+    }
+}
+
 static double getSumOfConsistentAdjacenciesScore(int32_t n, adjList *aL, reference *ref) {
     double score = 0.0;
     adjListIt it = adjList_getEdgeIt(aL, n);
@@ -694,30 +754,30 @@ static bool visitP(int32_t n, stSortedSet *visited, stSortedSet *visiting, adjLi
         assert(stSortedSet_search(visiting, i) == NULL); //otherwise we have detected a cycle
         stSortedSet_insert(visiting, i);
         stList *validEdges = getValidEdges(-n, aL, ref); //The minus sign is because we seek edges incident with the righthand side of the segment.
-        stList_sort(validEdges, (int (*)(const void *, const void *))edge_cmpByWeight);
+        stList_sort(validEdges, (int(*)(const void *, const void *)) edge_cmpByWeight);
         stList_append(stack, i);
         stList_append(stack, validEdges);
         return 1;
-    }
-    else {
+    } else {
         assert(stSortedSet_search(visiting, i) != NULL);
         stIntTuple_destruct(i);
         return 0;
     }
 }
 
-static void visit(int32_t n, stSortedSet *visited, stSortedSet *visiting, adjList *aL, reference *ref, stList *ordering, stList *stack) {
+static void visit(int32_t n, stSortedSet *visited, stSortedSet *visiting, adjList *aL, reference *ref,
+        stList *ordering, stList *stack) {
     /*
      * Do DFS of nodes using edges that are consistent with the graph.
      */
-    if(visitP(n, visited, visiting, aL, ref, ordering, stack)) {
-        while(1) {
+    if (visitP(n, visited, visiting, aL, ref, ordering, stack)) {
+        while (1) {
             stList *edges = stList_peek(stack);
             while (stList_length(edges) > 0) {
                 edge *e = stList_pop(edges);
                 int32_t m = e->to;
                 free(e);
-                if(visitP(m, visited, visiting, aL, ref, ordering, stack)) {
+                if (visitP(m, visited, visiting, aL, ref, ordering, stack)) {
                     goto top;
                 }
             }
@@ -725,7 +785,7 @@ static void visit(int32_t n, stSortedSet *visited, stSortedSet *visiting, adjLis
             stIntTuple *i = stList_pop(stack);
             stSortedSet_insert(visited, i);
             stList_append(ordering, i);
-            if(stList_length(stack) == 0) {
+            if (stList_length(stack) == 0) {
                 break;
             }
             top: ;

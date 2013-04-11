@@ -112,6 +112,8 @@ void reorderReferenceToAvoidBreakpoints(adjList *aL, reference *ref);
 
 double getReferenceScore(adjList *aL, reference *ref);
 
+void nudgeGreedily(adjList *aL, reference *ref, int32_t permutations);
+
 /*
  * Count of adjacent nodes in reference that have no edge connecting them.
  */

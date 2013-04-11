@@ -184,6 +184,12 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
                 topologicalReorderedScore, adjList_getMaxPossibleScore(aL), getBadAdjacencyCount(aL, ref));
         CuAssertTrue(testCase, topologicalReorderedScore >= greedyPermutationScore);
         //CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= badAdjacencyCountGreedyPermutations);
+        nudgeGreedily(aL, ref, 10);
+        double nudgeScore = getReferenceScore(aL, ref);
+        checkIsValidReference(testCase);
+        CuAssertTrue(testCase, nudgeScore >= topologicalReorderedScore);
+        st_logInfo("Nudge score, it took %i seconds, score: %f of possible: %f, bad adjacency count: %i\n", time(NULL) - startTime,
+                        nudgeScore, adjList_getMaxPossibleScore(aL), getBadAdjacencyCount(aL, ref));
         reference_log(ref);
         teardown();
     }
@@ -197,7 +203,6 @@ static void fn(double theta, int32_t node1, int32_t node2, int32_t adjacencyLeng
 }
 
 static void testADBDCExample(CuTest *testCase) {
-    return;
     /*
      * Tests example from paper.
      */
