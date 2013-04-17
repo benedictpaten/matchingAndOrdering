@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     assert(stList_length(adjacencyEdges) == nodeNumber/2);
     int64_t adjacencies[nodeNumber];
     for(int64_t j=0; j<nodeNumber; j++) {
-        adjacencies[j] = INT32_MAX;
+        adjacencies[j] = INT64_MAX;
     }
     for(int64_t j=0; j<stList_length(adjacencyEdges); j++) {
         stIntTuple *edge = stList_get(adjacencyEdges, j);
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
         adjacencies[node2] = node1;
     }
     for(int64_t j=0; j<nodeNumber; j++) {
-        assert(adjacencies[j] != INT32_MAX);
+        assert(adjacencies[j] != INT64_MAX);
         assert(adjacencies[j] >= 0 && adjacencies[j] < nodeNumber);
     }
     //Now print out the median

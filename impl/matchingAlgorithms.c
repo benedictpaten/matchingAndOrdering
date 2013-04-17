@@ -232,7 +232,7 @@ stList *chooseMatching_greedy(stList *edges, int64_t nodeNumber) {
     //Sort the adjacency pairs..
     stList_sort(edges, chooseMatching_greedyP);
 
-    double strength = INT32_MAX;
+    double strength = INT64_MAX;
     while (stList_length(edges) > 0) {
         stIntTuple *edge = stList_pop(edges);
         double d = stIntTuple_getPosition(edge, 2);

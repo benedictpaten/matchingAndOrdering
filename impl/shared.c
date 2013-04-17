@@ -251,6 +251,6 @@ void logEdges(stList *edges, const char *edgesName) {
                 stIntTuple_getPosition(edge, 0),
                 stIntTuple_getPosition(edge, 1),
                 (stIntTuple_length(edge) == 3 ? stIntTuple_getPosition(edge, 2)
-                        : INT32_MAX));
+                        : INT64_MAX));
     }
 }

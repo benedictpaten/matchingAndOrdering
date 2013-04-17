@@ -65,7 +65,7 @@ static void testADBDCExample(
     fn(zMatrix, nodeNumber, theta, _3D, _3B, adjacencyLength, DL, BL, n);
 
     double totalScore;
-    stList *reference = makeReferenceGreedily(stubs, chains, zMatrix, nodeNumber, &totalScore, INT32_MAX);
+    stList *reference = makeReferenceGreedily(stubs, chains, zMatrix, nodeNumber, &totalScore, INT64_MAX);
 
     greedyImprovement(reference, chains, zMatrix, 100);
     //(reference, chains, zMatrix, 100, NULL);

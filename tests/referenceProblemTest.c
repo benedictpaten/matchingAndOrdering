@@ -153,27 +153,27 @@ static void testGibbsSamplingWithSimulatedAnnealing_NoExponentiation_Greedy(
         CuTest *testCase) {
     st_logDebug("Running adjacency problem tests using gibbs sampling, but greedy sampling\n");
     testGibbsSamplingWithSimulatedAnnealing(testCase,
-            NULL, 1, INT32_MAX);
+            NULL, 1, INT64_MAX);
 }
 
 static void testGibbsSamplingWithSimulatedAnnealing_NoExponentiation(
         CuTest *testCase) {
     st_logDebug("Running adjacency problem tests using gibbs sampling, but no exponentiation\n");
     testGibbsSamplingWithSimulatedAnnealing(testCase,
-            NULL, 0, INT32_MAX);
+            NULL, 0, INT64_MAX);
 }
 
 static void testGibbsSamplingWithSimulatedAnnealing_ConstantTemperature(
         CuTest *testCase) {
     st_logDebug("Running adjacency problem tests using gibbs sampling, but with constant temperature\n");
-    testGibbsSamplingWithSimulatedAnnealing(testCase, constantTemperatureFn, 0, INT32_MAX);
+    testGibbsSamplingWithSimulatedAnnealing(testCase, constantTemperatureFn, 0, INT64_MAX);
 }
 
 static void testGibbsSamplingWithSimulatedAnnealing_WithCooling(
         CuTest *testCase) {
     st_logDebug("Running adjacency problem tests using gibbs sampling, with exponentially decreasing temperature function\n");
     testGibbsSamplingWithSimulatedAnnealing(testCase,
-            exponentiallyDecreasingTemperatureFn, 0, INT32_MAX);
+            exponentiallyDecreasingTemperatureFn, 0, INT64_MAX);
 }
 
 static double calculateZScoreSlow(int64_t n, int64_t m, int64_t k, double theta) {
