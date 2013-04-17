@@ -25,32 +25,32 @@ stSortedSet *getEmptyNodeOrEdgeSetWithoutCleanup();
 
 int compareEdgesByWeight(const void *edge, const void *edge2);
 
-int32_t getOtherPosition(stIntTuple *edge, int32_t node);
+int64_t getOtherPosition(stIntTuple *edge, int64_t node);
 
 stSortedSet *getNodeSetOfEdges(stList *edges);
 
-void addNodeToSet(stSortedSet *nodes, int32_t node);
+void addNodeToSet(stSortedSet *nodes, int64_t node);
 
-bool nodeInSet(stSortedSet *nodes, int32_t node);
+bool nodeInSet(stSortedSet *nodes, int64_t node);
 
-void addEdgeToList(int32_t node1, int32_t node2, stList *edges);
+void addEdgeToList(int64_t node1, int64_t node2, stList *edges);
 
-void addWeightedEdgeToList(int32_t node1, int32_t node2, int32_t weight,
+void addWeightedEdgeToList(int64_t node1, int64_t node2, int64_t weight,
         stList *edges);
 
-stIntTuple *getWeightedEdgeFromSet(int32_t node1, int32_t node2,
+stIntTuple *getWeightedEdgeFromSet(int64_t node1, int64_t node2,
         stSortedSet *allAdjacencyEdges);
 
 stHash *getNodesToEdgesHash(stList *edges);
 
-stIntTuple *getEdgeForNodes(int32_t node1, int32_t node2,
+stIntTuple *getEdgeForNodes(int64_t node1, int64_t node2,
         stHash *nodesToAdjacencyEdges);
 
-void *getItemForNode(int32_t node, stHash *nodesToItems);
+void *getItemForNode(int64_t node, stHash *nodesToItems);
 
-bool edgeInSet(stSortedSet *edges, int32_t node1, int32_t node2);
+bool edgeInSet(stSortedSet *edges, int64_t node1, int64_t node2);
 
-void addEdgeToSet(stSortedSet *edges, int32_t node1, int32_t node2);
+void addEdgeToSet(stSortedSet *edges, int64_t node1, int64_t node2);
 
 stList *getEdgesWithGreaterThanZeroWeight(stList *adjacencyEdges);
 

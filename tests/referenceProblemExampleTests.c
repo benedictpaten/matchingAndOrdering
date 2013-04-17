@@ -10,8 +10,8 @@
 #include "stMatchingAlgorithms.h"
 #include "stCheckEdges.h"
 
-static void fn(float *zMatrix, int32_t nodeNumber,  double theta, int32_t node1, int32_t node2,
-        int32_t adjacencyLength, int32_t node1Length, int32_t node2Length, int32_t degree) {
+static void fn(float *zMatrix, int64_t nodeNumber,  double theta, int64_t node1, int64_t node2,
+        int64_t adjacencyLength, int64_t node1Length, int64_t node2Length, int64_t degree) {
     double d = degree * calculateZScore(node1Length, node2Length, adjacencyLength, theta);
     assert(node1 != node2);
     zMatrix[nodeNumber * node1 + node2] += d;
@@ -24,28 +24,28 @@ static void testADBDCExample(
      * Tests example from paper.
      */
     //Nodes
-    int32_t A=0;
-    int32_t AL = 2;
-    int32_t C=1;
-    int32_t CL = 2;
-    int32_t _5B = 2;
-    int32_t _3B = 3;
-    int32_t BL = 2;
-    int32_t _5D = 4;
-    int32_t _3D = 5;
-    int32_t DL = 2;
-    int32_t nodeNumber = 6;
+    int64_t A=0;
+    int64_t AL = 2;
+    int64_t C=1;
+    int64_t CL = 2;
+    int64_t _5B = 2;
+    int64_t _3B = 3;
+    int64_t BL = 2;
+    int64_t _5D = 4;
+    int64_t _3D = 5;
+    int64_t DL = 2;
+    int64_t nodeNumber = 6;
 
-    int32_t adjacencyLength = 1;
-    int32_t n = 100;
+    int64_t adjacencyLength = 1;
+    int64_t n = 100;
     double theta = 0.0;
 
     stList *stubs = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
-    stList_append(stubs, stIntTuple_construct(2, C, A));
+    stList_append(stubs, stIntTuple_construct2(C, A));
 
     stList *chains = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
-    stList_append(chains, stIntTuple_construct(2, _5B, _3B));
-    stList_append(chains, stIntTuple_construct(2, _5D, _3D));
+    stList_append(chains, stIntTuple_construct2(_5B, _3B));
+    stList_append(chains, stIntTuple_construct2(_5D, _3D));
 
     float *zMatrix = st_calloc(nodeNumber*nodeNumber, sizeof(float));
 
@@ -75,9 +75,9 @@ static void testADBDCExample(
                     "result");
     stList *chosenEdges = convertReferenceToAdjacencyEdges(reference);
     stSortedSet *chosenEdgesSet = stList_getSortedSet(chosenEdges, (int (*)(const void *, const void *))stIntTuple_cmpFn);
-    for(int32_t i=0; i<stList_length(chosenEdges); i++) {
+    for(int64_t i=0; i<stList_length(chosenEdges); i++) {
         stIntTuple *edge = stList_get(chosenEdges, i);
-        st_logDebug("I got the edge %i %i\n", stIntTuple_getPosition(edge, 0), stIntTuple_getPosition(edge, 1));
+        st_logDebug("I got the edge %" PRIi64 " %" PRIi64 "\n", stIntTuple_getPosition(edge, 0), stIntTuple_getPosition(edge, 1));
     }
 
     CuAssertTrue(testCase, stList_length(reference) == 1);

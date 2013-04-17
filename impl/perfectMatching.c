@@ -34,7 +34,7 @@ static void makeMatchingPerfect(stList *chosenEdges, stList *adjacencyEdges,
 
 stList *getPerfectMatching(stSortedSet *nodes,
         stList *adjacencyEdges,
-        stList *(*matchingAlgorithm)(stList *edges, int32_t nodeNumber)) {
+        stList *(*matchingAlgorithm)(stList *edges, int64_t nodeNumber)) {
 
     checkEdges(adjacencyEdges, nodes, 1, 1); //Checks edges are clique
 
@@ -49,7 +49,7 @@ stList *getPerfectMatching(stSortedSet *nodes,
     makeMatchingPerfect(chosenEdges, adjacencyEdges, nodes);
 
     st_logDebug(
-                "Chosen a perfect matching with %i edges, %i cardinality and %i weight\n",
+                "Chosen a perfect matching with %" PRIi64 " edges, %" PRIi64 " cardinality and %" PRIi64 " weight\n",
                 stList_length(chosenEdges), matchingCardinality(chosenEdges),
                 matchingWeight(chosenEdges));
 

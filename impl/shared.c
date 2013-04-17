@@ -28,31 +28,31 @@ stSortedSet *getEmptyNodeOrEdgeSetWithoutCleanup() {
 ////////////////////////////////////
 ////////////////////////////////////
 
-stIntTuple *constructEdge(int32_t node1, int32_t node2) {
+stIntTuple *constructEdge(int64_t node1, int64_t node2) {
     assert(node1 != node2);
     if (node1 > node2) {
         return constructEdge(node2, node1);
     }
-    return stIntTuple_construct(2, node1, node2);
+    return stIntTuple_construct2(node1, node2);
 }
 
-stIntTuple *constructWeightedEdge(int32_t node1, int32_t node2, int32_t weight) {
+stIntTuple *constructWeightedEdge(int64_t node1, int64_t node2, int64_t weight) {
     assert(node1 != node2);
     if (node1 > node2) {
         return constructWeightedEdge(node2, node1, weight);
     }
-    return stIntTuple_construct(3, node1, node2, weight);
+    return stIntTuple_construct3(node1, node2, weight);
 }
 
 int compareEdgesByWeight(const void *edge, const void *edge2) {
     assert(stIntTuple_getPosition((stIntTuple *)edge, 0) < stIntTuple_getPosition((stIntTuple *)edge, 1));
     assert(stIntTuple_getPosition((stIntTuple *)edge2, 0) < stIntTuple_getPosition((stIntTuple *)edge2, 1));
-    int32_t i = stIntTuple_getPosition((stIntTuple *) edge, 2);
-    int32_t j = stIntTuple_getPosition((stIntTuple *) edge2, 2);
+    int64_t i = stIntTuple_getPosition((stIntTuple *) edge, 2);
+    int64_t j = stIntTuple_getPosition((stIntTuple *) edge2, 2);
     return i > j ? 1 : (i < j ? -1 : 0);
 }
 
-int32_t getOtherPosition(stIntTuple *edge, int32_t node) {
+int64_t getOtherPosition(stIntTuple *edge, int64_t node) {
     /*
      * Get the other position to the given node in the edge.
      */
@@ -71,8 +71,8 @@ int32_t getOtherPosition(stIntTuple *edge, int32_t node) {
 ////////////////////////////////////
 ////////////////////////////////////
 
-static void getNodeSetOfEdgesP(stSortedSet *nodes, int32_t node) {
-    stIntTuple *i = stIntTuple_construct(1, node);
+static void getNodeSetOfEdgesP(stSortedSet *nodes, int64_t node) {
+    stIntTuple *i = stIntTuple_construct1( node);
     if (stSortedSet_search(nodes, i) == NULL) {
         stSortedSet_insert(nodes, i);
     } else {
@@ -87,7 +87,7 @@ stSortedSet *getNodeSetOfEdges(stList *edges) {
     stSortedSet *nodes = stSortedSet_construct3(
             (int(*)(const void *, const void *)) stIntTuple_cmpFn,
             (void(*)(void *)) stIntTuple_destruct);
-    for (int32_t i = 0; i < stList_length(edges); i++) {
+    for (int64_t i = 0; i < stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
         assert(stIntTuple_getPosition(edge, 0) < stIntTuple_getPosition(edge, 1));
         getNodeSetOfEdgesP(nodes, stIntTuple_getPosition(edge, 0));
@@ -96,30 +96,30 @@ stSortedSet *getNodeSetOfEdges(stList *edges) {
     return nodes;
 }
 
-bool nodeInSet(stSortedSet *nodes, int32_t node) {
+bool nodeInSet(stSortedSet *nodes, int64_t node) {
     /*
      * Returns non zero iff the node is in the set.
      */
-    stIntTuple *i = stIntTuple_construct(1, node);
+    stIntTuple *i = stIntTuple_construct1( node);
     bool b = stSortedSet_search(nodes, i) != NULL;
     stIntTuple_destruct(i);
     return b;
 }
 
-void addNodeToSet(stSortedSet *nodes, int32_t node) {
+void addNodeToSet(stSortedSet *nodes, int64_t node) {
     /*
      * Adds a node to the set.
      */
     assert(!nodeInSet(nodes, node));
-    stIntTuple *i = stIntTuple_construct(1, node);
+    stIntTuple *i = stIntTuple_construct1( node);
     stSortedSet_insert(nodes, i);
 }
 
-void *getItemForNode(int32_t node, stHash *nodesToItems) {
+void *getItemForNode(int64_t node, stHash *nodesToItems) {
     /*
      * Get edges for given node, or NULL if none.
      */
-    stIntTuple *node1 = stIntTuple_construct(1, node);
+    stIntTuple *node1 = stIntTuple_construct1( node);
     void *o = stHash_search(nodesToItems, node1);
     stIntTuple_destruct(node1);
     return o;
@@ -131,16 +131,16 @@ void *getItemForNode(int32_t node, stHash *nodesToItems) {
 ////////////////////////////////////
 ////////////////////////////////////
 
-void addWeightedEdgeToList(int32_t node1, int32_t node2, int32_t weight,
+void addWeightedEdgeToList(int64_t node1, int64_t node2, int64_t weight,
         stList *edges) {
     stList_append(edges, constructWeightedEdge(node1, node2, weight));
 }
 
-void addEdgeToList(int32_t node1, int32_t node2, stList *edges) {
+void addEdgeToList(int64_t node1, int64_t node2, stList *edges) {
     stList_append(edges, constructEdge(node1, node2));
 }
 
-stIntTuple *getWeightedEdgeFromSet(int32_t node1, int32_t node2,
+stIntTuple *getWeightedEdgeFromSet(int64_t node1, int64_t node2,
         stSortedSet *allAdjacencyEdges) {
     if(node1 > node2) {
         return getWeightedEdgeFromSet(node2, node1, allAdjacencyEdges);
@@ -155,8 +155,8 @@ stIntTuple *getWeightedEdgeFromSet(int32_t node1, int32_t node2,
 }
 
 static void getNodesToEdgesHashP(stHash *nodesToEdges, stIntTuple *edge,
-        int32_t position) {
-    stIntTuple *node = stIntTuple_construct(1,
+        int64_t position) {
+    stIntTuple *node = stIntTuple_construct1(
             stIntTuple_getPosition(edge, position));
     stList *edges;
     if ((edges = stHash_search(nodesToEdges, node)) == NULL) {
@@ -173,12 +173,12 @@ stHash *getNodesToEdgesHash(stList *edges) {
      * Build a hash of nodes to edges.
      */
     stHash *nodesToEdges = stHash_construct3(
-            (uint32_t(*)(const void *)) stIntTuple_hashKey,
+            (uint64_t(*)(const void *)) stIntTuple_hashKey,
             (int(*)(const void *, const void *)) stIntTuple_equalsFn,
             (void(*)(void *)) stIntTuple_destruct,
             (void(*)(void *)) stList_destruct);
 
-    for (int32_t i = 0; i < stList_length(edges); i++) {
+    for (int64_t i = 0; i < stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
         assert(stIntTuple_getPosition(edge, 0) < stIntTuple_getPosition(edge, 1));
         getNodesToEdgesHashP(nodesToEdges, edge, 0);
@@ -188,7 +188,7 @@ stHash *getNodesToEdgesHash(stList *edges) {
     return nodesToEdges;
 }
 
-stIntTuple *getEdgeForNodes(int32_t node1, int32_t node2,
+stIntTuple *getEdgeForNodes(int64_t node1, int64_t node2,
         stHash *nodesToAdjacencyEdges) {
     /*
      * Searches for any edge present in nodesToAdjacencyEdges that links node and node2.
@@ -197,7 +197,7 @@ stIntTuple *getEdgeForNodes(int32_t node1, int32_t node2,
     if (edges == NULL) {
         return NULL;
     }
-    for (int32_t i = 0; i < stList_length(edges); i++) {
+    for (int64_t i = 0; i < stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
         assert(stIntTuple_getPosition(edge, 0) < stIntTuple_getPosition(edge, 1));
         if (getOtherPosition(edge, node1) == node2) {
@@ -207,7 +207,7 @@ stIntTuple *getEdgeForNodes(int32_t node1, int32_t node2,
     return NULL;
 }
 
-bool edgeInSet(stSortedSet *edges, int32_t node1, int32_t node2) {
+bool edgeInSet(stSortedSet *edges, int64_t node1, int64_t node2) {
     /*
      * Returns non-zero iff the edge linking node1 and node2 is in the set of edges. Works with addEdgeToSet.
      * Assumes that that node1 < node2
@@ -221,7 +221,7 @@ bool edgeInSet(stSortedSet *edges, int32_t node1, int32_t node2) {
     return b;
 }
 
-void addEdgeToSet(stSortedSet *edges, int32_t node1, int32_t node2) {
+void addEdgeToSet(stSortedSet *edges, int64_t node1, int64_t node2) {
     /*
      * Adds an edge to the set.
      */
@@ -243,10 +243,10 @@ stList *getEdgesWithGreaterThanZeroWeight(stList *adjacencyEdges) {
 }
 
 void logEdges(stList *edges, const char *edgesName) {
-    for (int32_t i = 0; i < stList_length(edges); i++) {
+    for (int64_t i = 0; i < stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
         st_logDebug(
-                "Edge, type: %s, node1: %i, node2: %i, weight: %i\n",
+                "Edge, type: %s, node1: %" PRIi64 ", node2: %" PRIi64 ", weight: %" PRIi64 "\n",
                 edgesName,
                 stIntTuple_getPosition(edge, 0),
                 stIntTuple_getPosition(edge, 1),

@@ -9,7 +9,7 @@
 #include "stMatchingAlgorithms.h"
 #include "shared.h"
 
-static int32_t nodeNumber = 0;
+static int64_t nodeNumber = 0;
 static stSortedSet *edges = NULL;
 static stList *edgesList = NULL;
 
@@ -32,11 +32,11 @@ static void setup() {
     } while(nodeNumber % 2 != 0);
     edgesList = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
     if(nodeNumber > 0) {
-        int32_t edgeNumber = st_randomInt(0, nodeNumber * 10);
+        int64_t edgeNumber = st_randomInt(0, nodeNumber * 10);
         stSortedSet *seen = getEmptyNodeOrEdgeSetWithCleanup();
-        for(int32_t i=0; i<edgeNumber; i++) {
-            int32_t from = st_randomInt(0, nodeNumber);
-            int32_t to = st_randomInt(0, nodeNumber);
+        for(int64_t i=0; i<edgeNumber; i++) {
+            int64_t from = st_randomInt(0, nodeNumber);
+            int64_t to = st_randomInt(0, nodeNumber);
             if(from != to) {
                 if(!edgeInSet(seen, from, to)) {
                     addEdgeToSet(seen, from, to);
@@ -54,11 +54,11 @@ static void checkMatching(CuTest *testCase, stList *matching, bool perfectMatchi
      * Checks the matching is valid.
      */
     stSortedSet *seen = stSortedSet_construct3((int (*)(const void *, const void *))stIntTuple_cmpFn, (void (*)(void *))stIntTuple_destruct);
-    for(int32_t i=0; i<stList_length(matching); i++) {
+    for(int64_t i=0; i<stList_length(matching); i++) {
         stIntTuple *edge = stList_get(matching, i);
-        int32_t from = stIntTuple_getPosition(edge, 0);
-        int32_t to = stIntTuple_getPosition(edge, 1);
-        int32_t weight = stIntTuple_getPosition(edge, 2);
+        int64_t from = stIntTuple_getPosition(edge, 0);
+        int64_t to = stIntTuple_getPosition(edge, 1);
+        int64_t weight = stIntTuple_getPosition(edge, 2);
 
         /*
          * Check bounds are valid.
@@ -71,10 +71,10 @@ static void checkMatching(CuTest *testCase, stList *matching, bool perfectMatchi
         /*
          * Check the matching is valid.
          */
-        stIntTuple *fromTuple = stIntTuple_construct(1, from);
+        stIntTuple *fromTuple = stIntTuple_construct1( from);
         CuAssertTrue(testCase, stSortedSet_search(seen, fromTuple) == NULL);
         stSortedSet_insert(seen, fromTuple);
-        stIntTuple *toTuple = stIntTuple_construct(1, to);
+        stIntTuple *toTuple = stIntTuple_construct1( to);
         CuAssertTrue(testCase, stSortedSet_search(seen, toTuple) == NULL);
         stSortedSet_insert(seen, toTuple);
 
@@ -93,12 +93,12 @@ static void checkMatching(CuTest *testCase, stList *matching, bool perfectMatchi
 }
 
 static void testGreedy(CuTest *testCase) {
-    for(int32_t i=0; i<100; i++) {
+    for(int64_t i=0; i<100; i++) {
         setup();
         stList *matching = chooseMatching_greedy(edgesList, nodeNumber);
         checkMatching(testCase, matching, 0);
-        int32_t totalWeight = matchingWeight(matching);
-        st_logInfo("The total weight of the greedy matching is %i\n", totalWeight);
+        int64_t totalWeight = matchingWeight(matching);
+        st_logInfo("The total weight of the greedy matching is %" PRIi64 "\n", totalWeight);
         stList_destruct(matching);
         teardown();
     }
@@ -110,7 +110,7 @@ static void testMaximumWeight(CuTest *testCase) {
      * and checks that they have equal weight and higher or equal weight to the greedy matching
      * as well as sanity checking the matchings (the blossom matching is perfect).
      */
-    for(int32_t i=0; i<100; i++) {
+    for(int64_t i=0; i<100; i++) {
         setup();
         stList *greedyMatching = chooseMatching_greedy(edgesList, nodeNumber);
         stList *blossomMatching = chooseMatching_blossom5(edgesList, nodeNumber);
@@ -118,12 +118,12 @@ static void testMaximumWeight(CuTest *testCase) {
         checkMatching(testCase, greedyMatching, 0);
         checkMatching(testCase, blossomMatching, 0);
         checkMatching(testCase, maximumWeightMatching, 0);
-        int32_t totalGreedyWeight = matchingWeight(greedyMatching);
-        int32_t totalBlossumWeight = matchingWeight(blossomMatching);
-        int32_t totalMaximumWeightWeight = matchingWeight(maximumWeightMatching);
-        st_logInfo("The total weight of the greedy matching is %i, the total weight of the blossom5 matching is %i, the total weight of the maximum weight matching is %i\n",
+        int64_t totalGreedyWeight = matchingWeight(greedyMatching);
+        int64_t totalBlossumWeight = matchingWeight(blossomMatching);
+        int64_t totalMaximumWeightWeight = matchingWeight(maximumWeightMatching);
+        st_logInfo("The total weight of the greedy matching is %" PRIi64 ", the total weight of the blossom5 matching is %" PRIi64 ", the total weight of the maximum weight matching is %" PRIi64 "\n",
                 totalGreedyWeight, totalBlossumWeight, totalMaximumWeightWeight);
-        st_logInfo("The total cardinality of the greedy matching is %i, the total cardinality of the blossom5  matching is %i, the total cardinality of the maximum weight matching is %i\n",
+        st_logInfo("The total cardinality of the greedy matching is %" PRIi64 ", the total cardinality of the blossom5  matching is %" PRIi64 ", the total cardinality of the maximum weight matching is %" PRIi64 "\n",
                         stList_length(greedyMatching), stList_length(blossomMatching), stList_length(maximumWeightMatching));
         CuAssertTrue(testCase, totalGreedyWeight <= totalBlossumWeight);
         CuAssertTrue(testCase, totalGreedyWeight <= totalMaximumWeightWeight);
@@ -141,18 +141,18 @@ static void testMaximumCardinality(CuTest *testCase) {
      * Tests a maximum (cardinality) matching algorithm, checking that it has higher or equal
      * cardinality to the greedy algorithm.
      */
-    for(int32_t i=0; i<100; i++) {
+    for(int64_t i=0; i<100; i++) {
         setup();
         stList *greedyMatching = chooseMatching_greedy(edgesList, nodeNumber);
         stList *edmondsMatching = chooseMatching_maximumCardinalityMatching(edgesList, nodeNumber);
         checkMatching(testCase, greedyMatching, 0);
         checkMatching(testCase, edmondsMatching, 0);
 
-        int32_t totalGreedyWeight = matchingWeight(greedyMatching);
-        int32_t totalEdmondsWeight = matchingWeight(edmondsMatching);
-        st_logInfo("The total weight of the greedy matching is %i, the total weight of the edmonds matching is %i\n",
+        int64_t totalGreedyWeight = matchingWeight(greedyMatching);
+        int64_t totalEdmondsWeight = matchingWeight(edmondsMatching);
+        st_logInfo("The total weight of the greedy matching is %" PRIi64 ", the total weight of the edmonds matching is %" PRIi64 "\n",
                 totalGreedyWeight, totalEdmondsWeight);
-        st_logInfo("The total cardinality of the greedy matching is %i, the total cardinality of the edmonds matching is %i\n",
+        st_logInfo("The total cardinality of the greedy matching is %" PRIi64 ", the total cardinality of the edmonds matching is %" PRIi64 "\n",
                 stList_length(greedyMatching), stList_length(edmondsMatching));
         CuAssertTrue(testCase, stList_length(greedyMatching) <= stList_length(edmondsMatching));
         stList_destruct(greedyMatching);

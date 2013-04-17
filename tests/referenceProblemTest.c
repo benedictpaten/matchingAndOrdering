@@ -16,7 +16,7 @@
 static stList *stubs;
 static stList *chains;
 static float *zMatrix;
-static int32_t nodeNumber;
+static int64_t nodeNumber;
 
 static void teardown() {
     if (nodeNumber != -1) {
@@ -37,9 +37,9 @@ static void setup() {
     assert(nodeNumber % 2 == 0);
     stubs = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
     chains = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
-    for(int32_t i=0; i<nodeNumber/2; i++) {
+    for(int64_t i=0; i<nodeNumber/2; i++) {
         assert(nodeNumber/2 > 0);
-        stIntTuple *edge = stIntTuple_construct(2, i, nodeNumber/2 + i);
+        stIntTuple *edge = stIntTuple_construct2(i, nodeNumber/2 + i);
         if(stList_length(stubs) == 0 || st_random() > 0.9) {
             stList_append(stubs, edge);
         }
@@ -48,14 +48,14 @@ static void setup() {
         }
     }
     zMatrix = st_calloc(nodeNumber*nodeNumber, sizeof(float));
-    for(int32_t i=0; i<nodeNumber; i++) {
-        for(int32_t j=i+1; j<nodeNumber; j++) {
+    for(int64_t i=0; i<nodeNumber; i++) {
+        for(int64_t j=i+1; j<nodeNumber; j++) {
             double score = st_random();
             zMatrix[i * nodeNumber + j] = score;
             zMatrix[j * nodeNumber + i] = score;
         }
     }
-    st_logDebug("To test the adjacency problem we've created a problem with %i nodes %i stubs and %i chains\n", nodeNumber, stList_length(stubs), stList_length(chains));
+    st_logDebug("To test the adjacency problem we've created a problem with %" PRIi64 " nodes %" PRIi64 " stubs and %" PRIi64 " chains\n", nodeNumber, stList_length(stubs), stList_length(chains));
 }
 
 static void checkIsValidReference(CuTest *testCase, stList *reference,
@@ -65,8 +65,8 @@ static void checkIsValidReference(CuTest *testCase, stList *reference,
     CuAssertIntEquals(testCase, nodeNumber, stList_length(chosenEdges) * 2);
     stSortedSet *nodes = stSortedSet_construct3((int(*)(const void *, const void *)) stIntTuple_cmpFn,
             (void(*)(void *)) stIntTuple_destruct);
-    for (int32_t i = 0; i < nodeNumber; i++) {
-        stSortedSet_insert(nodes, stIntTuple_construct(1, i));
+    for (int64_t i = 0; i < nodeNumber; i++) {
+        stSortedSet_insert(nodes, stIntTuple_construct1( i));
     }
     checkEdges(chosenEdges, nodes, 1, 0);
     //Check that the score is correct
@@ -87,7 +87,7 @@ static void checkIsValidReference(CuTest *testCase, stList *reference,
 }
 
 static void testMakeReferenceGreedily(CuTest *testCase) {
-    for (int32_t i = 0; i < 100; i++) {
+    for (int64_t i = 0; i < 100; i++) {
         setup();
         double totalScore;
         time_t startTime = time(NULL);
@@ -96,7 +96,7 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
                 nodeNumber, &totalScore, fast);
         checkIsValidReference(testCase, reference, totalScore);
         time_t totalTime = time(NULL) - startTime;
-        char *cA = stString_print("Greedy (fast:%i), %i nodes, it took %i seconds, score: %f\n", fast, nodeNumber, totalTime, totalScore);
+        char *cA = stString_print("Greedy (fast:%" PRIi64 "), %" PRIi64 " nodes, it took %" PRIi64 " seconds, score: %f\n", fast, nodeNumber, totalTime, totalScore);
         st_logInfo(cA);
         logReference(reference, nodeNumber, zMatrix, totalScore, cA);
         free(cA);
@@ -105,8 +105,8 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
 }
 
 static void testGibbsSamplingWithSimulatedAnnealing(CuTest *testCase,
-        double(*temperatureFn)(double), bool pureGreedy, int32_t maxNumberOfChainsBeforeSwitchingToFast) {
-    for (int32_t i = 0; i < 100; i++) {
+        double(*temperatureFn)(double), bool pureGreedy, int64_t maxNumberOfChainsBeforeSwitchingToFast) {
+    for (int64_t i = 0; i < 100; i++) {
         setup();
         double totalScore;
         time_t startTime = time(NULL);
@@ -115,12 +115,12 @@ static void testGibbsSamplingWithSimulatedAnnealing(CuTest *testCase,
                 nodeNumber, &totalScore, fast);
         checkIsValidReference(testCase, reference, totalScore);
         time_t totalTime = time(NULL) - startTime;
-        char *cA = stString_print("Pre-annealing greedy (fast:%i), %i nodes, it took %i seconds, score: %f\n", fast, nodeNumber, totalTime, totalScore);
+        char *cA = stString_print("Pre-annealing greedy (fast:%" PRIi64 "), %" PRIi64 " nodes, it took %" PRIi64 " seconds, score: %f\n", fast, nodeNumber, totalTime, totalScore);
         st_logInfo(cA);
         logReference(reference, nodeNumber, zMatrix, totalScore, cA);
         free(cA);
         startTime = time(NULL);
-        int32_t permutations = st_randomInt(0, 100);
+        int64_t permutations = st_randomInt(0, 100);
         if(pureGreedy) {
             greedyImprovement(reference, chains, zMatrix, permutations);
         }
@@ -131,7 +131,7 @@ static void testGibbsSamplingWithSimulatedAnnealing(CuTest *testCase,
         double totalScoreAfterAnnealing = calculateZScoreOfReference(reference, nodeNumber, zMatrix);
         checkIsValidReference(testCase, reference, totalScoreAfterAnnealing);
         totalTime = time(NULL) - startTime;
-        cA = stString_print("Post-annealing permutations:%i, %i nodes, it took %i seconds, score: %f\n", permutations, nodeNumber, totalTime, totalScore);
+        cA = stString_print("Post-annealing permutations:%" PRIi64 ", %" PRIi64 " nodes, it took %" PRIi64 " seconds, score: %f\n", permutations, nodeNumber, totalTime, totalScore);
         st_logInfo(cA);
         logReference(reference, nodeNumber, zMatrix, totalScoreAfterAnnealing,
                 cA);
@@ -176,10 +176,10 @@ static void testGibbsSamplingWithSimulatedAnnealing_WithCooling(
             exponentiallyDecreasingTemperatureFn, 0, INT32_MAX);
 }
 
-static double calculateZScoreSlow(int32_t n, int32_t m, int32_t k, double theta) {
+static double calculateZScoreSlow(int64_t n, int64_t m, int64_t k, double theta) {
     double score = 0.0;
-    for(int32_t i=0; i<n; i++) {
-        for(int32_t j=0; j<m; j++) {
+    for(int64_t i=0; i<n; i++) {
+        for(int64_t j=0; j<m; j++) {
             score += pow(1.0 - theta, k + i + j);
         }
     }
@@ -187,14 +187,14 @@ static double calculateZScoreSlow(int32_t n, int32_t m, int32_t k, double theta)
 }
 
 static void testCalculateZScore(CuTest *testCase) {
-    for(int32_t i=0; i<100; i++) {
-        int32_t n = st_randomInt(0, 100);
-        int32_t m = st_randomInt(0, 100);
-        int32_t k = st_randomInt(1, 10000);
+    for(int64_t i=0; i<100; i++) {
+        int64_t n = st_randomInt(0, 100);
+        int64_t m = st_randomInt(0, 100);
+        int64_t k = st_randomInt(1, 10000);
         double theta = st_random() > 0.05 ? st_random() : 0.0;
         double zScore = calculateZScore(n, m, k, theta);
         double zScoreSlow = calculateZScoreSlow(n, m, k, theta);
-        st_logDebug("The slow computed score: %f the fast computed score: %f, n: %i m: %i k: %i, theta: %lf\n", zScoreSlow, zScore, n, m, k, theta);
+        st_logDebug("The slow computed score: %f the fast computed score: %f, n: %" PRIi64 " m: %" PRIi64 " k: %" PRIi64 ", theta: %lf\n", zScoreSlow, zScore, n, m, k, theta);
         CuAssertDblEquals(testCase, zScoreSlow, zScore, 0.000001);
     }
 }

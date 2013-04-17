@@ -29,7 +29,7 @@ stList *getStubAndChainEdgeFreeComponents(stList *listOfLists, stList *list1,
  * The edges and nodes for the test.
  */
 
-static int32_t nodeNumber = 0;
+static int64_t nodeNumber = 0;
 static stList *adjacencyEdges = NULL;
 static stList *stubEdges = NULL;
 static stList *chainEdges = NULL;
@@ -54,16 +54,16 @@ static void teardown() {
  * Functions for fiddling with the random graphs generated.
  */
 
-static int32_t getRandomNodeWithReplacement(int32_t nodeNumber) {
+static int64_t getRandomNodeWithReplacement(int64_t nodeNumber) {
     return st_randomInt(0, nodeNumber);
 }
 
-static int32_t getRandomNodeWithoutReplacement(stSortedSet *nodes,
-        int32_t nodeNumber) {
+static int64_t getRandomNodeWithoutReplacement(stSortedSet *nodes,
+        int64_t nodeNumber) {
     if (stSortedSet_size(nodes) == nodeNumber) {
         assert(0);
     }
-    int32_t node = getRandomNodeWithReplacement(nodeNumber);
+    int64_t node = getRandomNodeWithReplacement(nodeNumber);
     while (nodeInSet(nodes, node)) {
         node = getRandomNodeWithReplacement(nodeNumber);
     }
@@ -76,7 +76,7 @@ static stSortedSet *getEdgeSet(stList *edges) {
             (int(*)(const void *, const void *)) stIntTuple_cmpFn);
 }
 
-static void setup(int32_t maxNodeNumber) {
+static void setup(int64_t maxNodeNumber) {
     /*
      * Creates a random graph to play with.
      */
@@ -85,7 +85,7 @@ static void setup(int32_t maxNodeNumber) {
         nodeNumber = st_randomInt(0, maxNodeNumber) + 2;
     } while (nodeNumber % 2 != 0);
     nodes = getEmptyNodeOrEdgeSetWithCleanup();
-    for(int32_t i=0; i<nodeNumber; i++) {
+    for(int64_t i=0; i<nodeNumber; i++) {
         addNodeToSet(nodes, i);
     }
     stubEdges = stList_construct3(0, (void(*)(void *)) stIntTuple_destruct);
@@ -104,8 +104,8 @@ static void setup(int32_t maxNodeNumber) {
     //Now make a clique of bunch of adjacency edges..
     adjacencyEdges
             = stList_construct3(0, (void(*)(void *)) stIntTuple_destruct);
-    for (int32_t i = 0; i < nodeNumber; i++) {
-        for (int32_t j = i + 1; j < nodeNumber; j++) {
+    for (int64_t i = 0; i < nodeNumber; i++) {
+        for (int64_t j = i + 1; j < nodeNumber; j++) {
             addWeightedEdgeToList(i, j, st_random() > 0.8 ? st_randomInt(0, 100) : 0,
                     adjacencyEdges);
         }
@@ -113,7 +113,7 @@ static void setup(int32_t maxNodeNumber) {
     //Check the inputs.
     checkInputs(nodes, adjacencyEdges, stubEdges, chainEdges);
     st_logInfo(
-            "We've created a random graph with %i nodes, %i stub edges, %i chain edges, %i adjacency edges",
+            "We've created a random graph with %" PRIi64 " nodes, %" PRIi64 " stub edges, %" PRIi64 " chain edges, %" PRIi64 " adjacency edges",
             nodeNumber, stList_length(stubEdges), stList_length(chainEdges),
             stList_length(adjacencyEdges));
     logEdges(adjacencyEdges, "adjacencyEdges");
@@ -125,7 +125,7 @@ static void testGetComponentsSimple(CuTest *testCase) {
     /*
      * Simple test, one edge incident with each node, checks there are n/2 comopnents.
      */
-    for (int32_t i = 0; i < 100; i++) {
+    for (int64_t i = 0; i < 100; i++) {
         setup(50);
         stList *stubAndChainEdges = stList_construct();
         stList_appendAll(stubAndChainEdges, stubEdges);
@@ -145,7 +145,7 @@ static void testGetComponentsSimple(CuTest *testCase) {
 }
 
 static void testGetComponentsP(stList *component, stSortedSet *seenEdges,
-        int32_t edgeIndex) {
+        int64_t edgeIndex) {
     /*
      * Search the edges extending out the component, to show test if it is disjoint.
      */
@@ -155,7 +155,7 @@ static void testGetComponentsP(stList *component, stSortedSet *seenEdges,
         stIntTuple *edge = stList_pop(stack);
         if (!stSortedSet_search(seenEdges, edge)) {
             stSortedSet_insert(seenEdges, edge);
-            for (int32_t i = 0; i < stList_length(component); i++) {
+            for (int64_t i = 0; i < stList_length(component); i++) {
                 stIntTuple *edge2 = stList_get(component, i);
                 if (edge2 != edge) {
                     if (stIntTuple_getPosition(edge, 0)
@@ -190,7 +190,7 @@ static bool itemInLists(stList *listOfLists, void *o) {
     /*
      * Returns non-zero iff o is in one if the lists.
      */
-    for (int32_t j = 0; j < stList_length(listOfLists); j++) {
+    for (int64_t j = 0; j < stList_length(listOfLists); j++) {
         stList *list = stList_get(listOfLists, j);
         if (stList_contains(list, o)) {
             return 1;
@@ -201,7 +201,7 @@ static bool itemInLists(stList *listOfLists, void *o) {
 
 stList *getSubsetOfEdges(stList *originalEdges) {
     stList *edges = stList_construct();
-    for (int32_t i = 0; i < stList_length(originalEdges); i++) {
+    for (int64_t i = 0; i < stList_length(originalEdges); i++) {
         if (st_random() > 0.5) {
             stList_append(edges, stList_get(originalEdges, i));
         }
@@ -215,7 +215,7 @@ static void testGetComponents(CuTest *testCase) {
      * checks (0) every edge is in one component,
      * (1) each one is disjoint, (2) each one is a single component.
      */
-    for (int32_t i = 0; i < 100; i++) {
+    for (int64_t i = 0; i < 100; i++) {
         setup(50);
         stList *allEdges = getSubsetOfEdges(adjacencyEdges);
         stList_appendAll(allEdges, chainEdges);
@@ -224,17 +224,17 @@ static void testGetComponents(CuTest *testCase) {
         stList *components = getComponents(allEdges);
 
         //Check every edge is in one component
-        for (int32_t i = 0; i < stList_length(allEdges); i++) {
+        for (int64_t i = 0; i < stList_length(allEdges); i++) {
             CuAssertTrue(testCase,
                     itemInLists(components, stList_get(allEdges, i)));
         }
-        st_logDebug("We got %i components\n", stList_length(components));
+        st_logDebug("We got %" PRIi64 " components\n", stList_length(components));
 
         //Check the components are disjoint (share no nodes).
         stSortedSet *allNodes = getEmptyNodeOrEdgeSetWithoutCleanup();
         stList *nodeSets = stList_construct3(0,
                 (void(*)(void *)) stSortedSet_destruct);
-        for (int32_t j = 0; j < stList_length(components); j++) {
+        for (int64_t j = 0; j < stList_length(components); j++) {
             stSortedSet *nodesSet =
                     getNodeSetOfEdges(stList_get(components, j));
             stSortedSet *intersection = stSortedSet_getIntersection(nodesSet,
@@ -252,7 +252,7 @@ static void testGetComponents(CuTest *testCase) {
         stList_destruct(nodeSets);
 
         //Check the components are not internally disjoint.
-        for (int32_t i = 0; i < stList_length(components); i++) {
+        for (int64_t i = 0; i < stList_length(components); i++) {
             stList *component = stList_get(components, i);
             testComponentIsNotDisjoint(testCase, component);
         }
@@ -268,7 +268,7 @@ static void testMergeSimpleCycles(CuTest *testCase) {
      * Gets a random set of cycles and checks that the output
      * is just one component, containing all the nodes.
      */
-    for (int32_t i = 0; i < 100; i++) {
+    for (int64_t i = 0; i < 100; i++) {
         setup(50);
         //Build a set of simple cycles.
         stList *allEdges = stList_construct();
@@ -283,7 +283,7 @@ static void testMergeSimpleCycles(CuTest *testCase) {
         stList *simpleCycles = getComponents(allEdges);
         stList *adjacencyOnlySimpleCycles = getStubAndChainEdgeFreeComponents(
                 simpleCycles, stubEdges, chainEdges);
-        for (int32_t i = 0; i < stList_length(adjacencyOnlySimpleCycles); i++) {
+        for (int64_t i = 0; i < stList_length(adjacencyOnlySimpleCycles); i++) {
             assert(stList_length(stList_get(simpleCycles, i)) > 0);
             assert(stList_length(stList_get(adjacencyOnlySimpleCycles, i)) > 0);
         }
@@ -318,7 +318,7 @@ static void checkMatching(CuTest *testCase, stList *chosenEdges,
      * Check every node has one adjacency.
      */
     stSortedSet *nodeSet = getEmptyNodeOrEdgeSetWithCleanup();
-    for (int32_t i = 0; i < stList_length(chosenEdges); i++) {
+    for (int64_t i = 0; i < stList_length(chosenEdges); i++) {
         stIntTuple *edge = stList_get(chosenEdges, i);
         CuAssertTrue(testCase,
                 !nodeInSet(nodeSet, stIntTuple_getPosition(edge, 0)));
@@ -336,7 +336,7 @@ static void checkMatching(CuTest *testCase, stList *chosenEdges,
      */
     stList *components = getComponents2(chosenEdges, stubEdges, chainEdges);
     stSortedSet *stubEdgeSet = getEdgeSet(stubEdges);
-    for (int32_t i = 0; i < stList_length(components); i++) {
+    for (int64_t i = 0; i < stList_length(components); i++) {
         stList *component = stList_get(components, i);
         stList *stubComponent = stList_filterToInclude(component, stubEdgeSet);
         CuAssertTrue(testCase, stList_length(stubComponent) > 0);
@@ -363,12 +363,12 @@ static void testEmptyCase(CuTest *testCase) {
 
 static void testGetMatchingWithCyclicConstraints(CuTest *testCase,
         bool makeStubsDisjoint,
-        stList *(*matchingAlgorithm)(stList *edges, int32_t nodeNumber),
-        bool isMaxCardinality, int32_t maxNodeNumber, int32_t testNumber) {
+        stList *(*matchingAlgorithm)(stList *edges, int64_t nodeNumber),
+        bool isMaxCardinality, int64_t maxNodeNumber, int64_t testNumber) {
     /*
      * Creates random graphs, constructs matchings and checks they are valid.
      */
-    for (int32_t i = 0; i < testNumber; i++) {
+    for (int64_t i = 0; i < testNumber; i++) {
         setup(maxNodeNumber);
         stList *matching = matchingAlgorithm(adjacencyEdges, nodeNumber);
         stList *greedyMatching = chooseMatching_greedy(adjacencyEdges,
@@ -378,20 +378,20 @@ static void testGetMatchingWithCyclicConstraints(CuTest *testCase,
                 matchingAlgorithm); //Do this last, as may add to adjacencies.
         checkMatching(testCase, cyclicMatching, makeStubsDisjoint);
 
-        int32_t totalCyclicMatchingWeight = matchingWeight(cyclicMatching);
-        int32_t totalMatchingWeight = matchingWeight(matching);
-        int32_t totalGreedyWeight = matchingWeight(greedyMatching);
-        int32_t totalCyclicMatchingCardinality = matchingCardinality(
+        int64_t totalCyclicMatchingWeight = matchingWeight(cyclicMatching);
+        int64_t totalMatchingWeight = matchingWeight(matching);
+        int64_t totalGreedyWeight = matchingWeight(greedyMatching);
+        int64_t totalCyclicMatchingCardinality = matchingCardinality(
                 cyclicMatching);
-        int32_t totalMatchingCardinality = matchingCardinality(matching);
-        int32_t totalGreedyCardinality = matchingCardinality(greedyMatching);
+        int64_t totalMatchingCardinality = matchingCardinality(matching);
+        int64_t totalGreedyCardinality = matchingCardinality(greedyMatching);
 
         st_logInfo(
-                "The total weight of the cyclic matching is %i, the total weight of the standard matching is %i, the total greedy weight is %i\n",
+                "The total weight of the cyclic matching is %" PRIi64 ", the total weight of the standard matching is %" PRIi64 ", the total greedy weight is %" PRIi64 "\n",
                 totalCyclicMatchingWeight, totalMatchingWeight,
                 totalGreedyWeight);
         st_logInfo(
-                "The total cardinality of the cyclic matching is %i, the total Cardinality of the standard matching is %i, the total greedy Cardinality is %i\n",
+                "The total cardinality of the cyclic matching is %" PRIi64 ", the total Cardinality of the standard matching is %" PRIi64 ", the total greedy Cardinality is %" PRIi64 "\n",
                 totalCyclicMatchingCardinality, totalMatchingCardinality,
                 totalGreedyCardinality);
 

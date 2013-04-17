@@ -11,10 +11,10 @@
 stList *makeReferenceGreedily(stList *stubs, stList *chains,
         float *z, int64_t nodeNumber, double *totalScore, bool fast);
 
-void greedyImprovement(stList *reference, stList *chains, float *z, int32_t permutations);
+void greedyImprovement(stList *reference, stList *chains, float *z, int64_t permutations);
 
 void gibbsSamplingWithSimulatedAnnealing(stList *reference,
-        stList *chains, float *z, int32_t permutations,
+        stList *chains, float *z, int64_t permutations,
         double(*temperature)(double));
 
 stList *convertReferenceToAdjacencyEdges(stList *reference);
@@ -31,6 +31,6 @@ void logZScoreOfReference(stList *reference, int64_t nodeNumber, float *zMatrix)
 
 double calculateMaxZ(int64_t nodeNumber, float *zMatrix);
 
-double calculateZScore(int32_t n, int32_t m, int32_t k, double theta);
+double calculateZScore(int64_t n, int64_t m, int64_t k, double theta);
 
 #endif /* REFERENCEPROBLEM_H_ */

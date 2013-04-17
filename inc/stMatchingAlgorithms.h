@@ -18,9 +18,9 @@
 
 extern const char *MATCHING_EXCEPTION;
 
-stIntTuple *constructEdge(int32_t node1, int32_t node2);
+stIntTuple *constructEdge(int64_t node1, int64_t node2);
 
-stIntTuple *constructWeightedEdge(int32_t node1, int32_t node2, int32_t weight);
+stIntTuple *constructWeightedEdge(int64_t node1, int64_t node2, int64_t weight);
 
 /*
  * Uses the blossom5 maximum weight perfect matching algorithm to choose a matching
@@ -30,17 +30,17 @@ stIntTuple *constructWeightedEdge(int32_t node1, int32_t node2, int32_t weight);
  * greater than or equal to zero and less than the total node number and weight
  * is a positive integer weight.
  */
-stList *chooseMatching_blossom5(stList *edges, int32_t nodeNumber);
+stList *chooseMatching_blossom5(stList *edges, int64_t nodeNumber);
 
 /*
  * Finds maximal matching (maximum cardinality) matching. Same form as the blossom algorithm.
  */
-stList *chooseMatching_maximumCardinalityMatching(stList *edges, int32_t nodeNumber);
+stList *chooseMatching_maximumCardinalityMatching(stList *edges, int64_t nodeNumber);
 
 /*
  * Finds maximum weight matching. Same form as the blossum algorithm.
  */
-stList *chooseMatching_maximumWeightMatching(stList *edges, int32_t nodeNumber);
+stList *chooseMatching_maximumWeightMatching(stList *edges, int64_t nodeNumber);
 
 /*
  * Uses a greedy algorithm to choose the matching, starting with the highest weight pair
@@ -48,17 +48,17 @@ stList *chooseMatching_maximumWeightMatching(stList *edges, int32_t nodeNumber);
  *
  * Same form as the blossom algorithm.
  */
-stList *chooseMatching_greedy(stList *edges, int32_t nodeNumber);
+stList *chooseMatching_greedy(stList *edges, int64_t nodeNumber);
 
 /*
  * Returns number of edges with weight > 0.
  */
-int32_t matchingCardinality(stList *matching);
+int64_t matchingCardinality(stList *matching);
 
 /*
  * Returns sum of weights.
  */
-int32_t matchingWeight(stList *matching);
+int64_t matchingWeight(stList *matching);
 
 stList *getComponents(stList *edges);
 

@@ -18,6 +18,6 @@
  */
 stList *getPerfectMatching(stSortedSet *nodes,
         stList *adjacencyEdges,
-        stList *(*matchingAlgorithm)(stList *edges, int32_t nodeNumber));
+        stList *(*matchingAlgorithm)(stList *edges, int64_t nodeNumber));
 
 #endif
