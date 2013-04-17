@@ -77,7 +77,7 @@ static void testADBDCExample(
     stSortedSet *chosenEdgesSet = stList_getSortedSet(chosenEdges, (int (*)(const void *, const void *))stIntTuple_cmpFn);
     for(int64_t i=0; i<stList_length(chosenEdges); i++) {
         stIntTuple *edge = stList_get(chosenEdges, i);
-        st_logDebug("I got the edge %" PRIi64 " %" PRIi64 "\n", stIntTuple_getPosition(edge, 0), stIntTuple_getPosition(edge, 1));
+        st_logDebug("I got the edge %" PRIi64 " %" PRIi64 "\n", stIntTuple_get(edge, 0), stIntTuple_get(edge, 1));
     }
 
     CuAssertTrue(testCase, stList_length(reference) == 1);

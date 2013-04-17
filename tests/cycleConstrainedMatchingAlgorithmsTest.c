@@ -158,14 +158,14 @@ static void testGetComponentsP(stList *component, stSortedSet *seenEdges,
             for (int64_t i = 0; i < stList_length(component); i++) {
                 stIntTuple *edge2 = stList_get(component, i);
                 if (edge2 != edge) {
-                    if (stIntTuple_getPosition(edge, 0)
-                            == stIntTuple_getPosition(edge2, 0)
-                            || stIntTuple_getPosition(edge, 0)
-                                    == stIntTuple_getPosition(edge2, 1)
-                            || stIntTuple_getPosition(edge, 1)
-                                    == stIntTuple_getPosition(edge2, 0)
-                            || stIntTuple_getPosition(edge, 1)
-                                    == stIntTuple_getPosition(edge2, 1)) {
+                    if (stIntTuple_get(edge, 0)
+                            == stIntTuple_get(edge2, 0)
+                            || stIntTuple_get(edge, 0)
+                                    == stIntTuple_get(edge2, 1)
+                            || stIntTuple_get(edge, 1)
+                                    == stIntTuple_get(edge2, 0)
+                            || stIntTuple_get(edge, 1)
+                                    == stIntTuple_get(edge2, 1)) {
                         stList_append(stack, stList_get(component, i));
                     }
                 }
@@ -321,11 +321,11 @@ static void checkMatching(CuTest *testCase, stList *chosenEdges,
     for (int64_t i = 0; i < stList_length(chosenEdges); i++) {
         stIntTuple *edge = stList_get(chosenEdges, i);
         CuAssertTrue(testCase,
-                !nodeInSet(nodeSet, stIntTuple_getPosition(edge, 0)));
-        addNodeToSet(nodeSet, stIntTuple_getPosition(edge, 0));
+                !nodeInSet(nodeSet, stIntTuple_get(edge, 0)));
+        addNodeToSet(nodeSet, stIntTuple_get(edge, 0));
         CuAssertTrue(testCase,
-                !nodeInSet(nodeSet, stIntTuple_getPosition(edge, 1)));
-        addNodeToSet(nodeSet, stIntTuple_getPosition(edge, 1));
+                !nodeInSet(nodeSet, stIntTuple_get(edge, 1)));
+        addNodeToSet(nodeSet, stIntTuple_get(edge, 1));
     }
     CuAssertIntEquals(testCase, nodeNumber, stSortedSet_size(nodeSet));
     stSortedSet_destruct(nodeSet);

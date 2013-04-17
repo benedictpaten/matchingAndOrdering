@@ -81,9 +81,9 @@ static void getComponentsP(stHash *nodesToEdges, int64_t node,
             /*
              * Recursion on stack could equal the total number of nodes.
              */
-            getComponentsP(nodesToEdges, stIntTuple_getPosition(edge, 0),
+            getComponentsP(nodesToEdges, stIntTuple_get(edge, 0),
                     component);
-            getComponentsP(nodesToEdges, stIntTuple_getPosition(edge, 1),
+            getComponentsP(nodesToEdges, stIntTuple_get(edge, 1),
                     component);
         }
         stList_destruct(edges);
@@ -114,9 +114,9 @@ stList *getComponents(stList *edges) {
             stHash_remove(nodesToEdges, node);
             for (int64_t i = 0; i < stList_length(edges); i++) {
                 stIntTuple *edge = stList_get(edges, i);
-                getComponentsP(nodesToEdges, stIntTuple_getPosition(edge, 0),
+                getComponentsP(nodesToEdges, stIntTuple_get(edge, 0),
                         component);
-                getComponentsP(nodesToEdges, stIntTuple_getPosition(edge, 1),
+                getComponentsP(nodesToEdges, stIntTuple_get(edge, 1),
                         component);
             }
             stList_append(components, stSortedSet_getList(component));
@@ -233,10 +233,10 @@ static AdjacencySwitch *getBest4EdgeAdjacencySwitchP(stIntTuple *oldEdge1,
             stIntTuple *newEdge2 = getWeightedEdgeFromSet(node3, node4,
                     allAdjacencyEdges);
             assert(newEdge2 != NULL);
-            int64_t cost = stIntTuple_getPosition(oldEdge1, 2)
-                    + stIntTuple_getPosition(oldEdge2, 2)
-                    - stIntTuple_getPosition(newEdge1, 2)
-                    - stIntTuple_getPosition(newEdge2, 2);
+            int64_t cost = stIntTuple_get(oldEdge1, 2)
+                    + stIntTuple_get(oldEdge2, 2)
+                    - stIntTuple_get(newEdge1, 2)
+                    - stIntTuple_get(newEdge2, 2);
             minimumCostAdjacencySwitch = adjacencySwitch_update(
                     minimumCostAdjacencySwitch, oldEdge1, oldEdge2, newEdge1,
                     newEdge2, cost);
@@ -274,10 +274,10 @@ static AdjacencySwitch *getBest4EdgeAdjacencySwitch2(stIntTuple *oldEdge1,
      */
     return getMinimumCostAdjacencySwitch(
             getBest4EdgeAdjacencySwitchP(oldEdge1,
-                    stIntTuple_getPosition(oldEdge1, 0), allAdjacencyEdges,
+                    stIntTuple_get(oldEdge1, 0), allAdjacencyEdges,
                     nodesToAllCurrentEdgesSet, nodesToBridgingAdjacencyEdges),
             getBest4EdgeAdjacencySwitchP(oldEdge1,
-                    stIntTuple_getPosition(oldEdge1, 1), allAdjacencyEdges,
+                    stIntTuple_get(oldEdge1, 1), allAdjacencyEdges,
                     nodesToAllCurrentEdgesSet, nodesToBridgingAdjacencyEdges));
 }
 
@@ -301,9 +301,9 @@ static stList *getEdgesThatBridgeComponents(stList *components,
                 for (int64_t j = 0; j < stList_length(edges); j++) {
                     stIntTuple *edge = stList_get(edges, j);
                     stIntTuple *node1 = stIntTuple_construct1(
-                            stIntTuple_getPosition(edge, 0));
+                            stIntTuple_get(edge, 0));
                     stIntTuple *node2 = stIntTuple_construct1(
-                            stIntTuple_getPosition(edge, 1));
+                            stIntTuple_get(edge, 1));
                     assert(
                             stSortedSet_search(componentNodes, node1) != NULL
                                     || stSortedSet_search(componentNodes, node2)
@@ -331,10 +331,10 @@ stIntTuple *getLowestScoringEdge(stList *edges) {
      */
     assert(stList_length(edges) > 0);
     stIntTuple *lowestScoringEdge = stList_get(edges, 0);
-    int64_t lowestScore = stIntTuple_getPosition(lowestScoringEdge, 2);
+    int64_t lowestScore = stIntTuple_get(lowestScoringEdge, 2);
     for (int64_t j = 1; j < stList_length(edges); j++) {
         stIntTuple *edge = stList_get(edges, j);
-        int64_t k = stIntTuple_getPosition(edge, 2);
+        int64_t k = stIntTuple_get(edge, 2);
         if (k < lowestScore) {
             lowestScore = k;
             lowestScoringEdge = edge;
@@ -344,8 +344,8 @@ stIntTuple *getLowestScoringEdge(stList *edges) {
 }
 
 static int getBest2EdgeAdjacencySwitchP(const void *o, const void *o2) {
-    int64_t i = stIntTuple_getPosition((void *) o, 2);
-    int64_t j = stIntTuple_getPosition((void *) o2, 2);
+    int64_t i = stIntTuple_get((void *) o, 2);
+    int64_t j = stIntTuple_get((void *) o2, 2);
     return i > j ? 1 : (i < j ? -1 : 0);
 }
 
@@ -379,19 +379,19 @@ static AdjacencySwitch *getBest2EdgeAdjacencySwitch(stList *components,
     stList_destruct(lowestScoringEdgeFromEachComponent); //Cleanup
 
     stIntTuple *newEdge1 = getWeightedEdgeFromSet(
-            stIntTuple_getPosition(lowestScoreEdge1, 0),
-            stIntTuple_getPosition(lowestScoreEdge2, 0), allAdjacencyEdges);
+            stIntTuple_get(lowestScoreEdge1, 0),
+            stIntTuple_get(lowestScoreEdge2, 0), allAdjacencyEdges);
     stIntTuple *newEdge2 = getWeightedEdgeFromSet(
-            stIntTuple_getPosition(lowestScoreEdge1, 1),
-            stIntTuple_getPosition(lowestScoreEdge2, 1), allAdjacencyEdges);
+            stIntTuple_get(lowestScoreEdge1, 1),
+            stIntTuple_get(lowestScoreEdge2, 1), allAdjacencyEdges);
     if (newEdge1 == NULL) {
         assert(newEdge2 == NULL);
         newEdge1 = getWeightedEdgeFromSet(
-                stIntTuple_getPosition(lowestScoreEdge1, 0),
-                stIntTuple_getPosition(lowestScoreEdge2, 1), allAdjacencyEdges);
+                stIntTuple_get(lowestScoreEdge1, 0),
+                stIntTuple_get(lowestScoreEdge2, 1), allAdjacencyEdges);
         newEdge2 = getWeightedEdgeFromSet(
-                stIntTuple_getPosition(lowestScoreEdge1, 1),
-                stIntTuple_getPosition(lowestScoreEdge2, 0), allAdjacencyEdges);
+                stIntTuple_get(lowestScoreEdge1, 1),
+                stIntTuple_get(lowestScoreEdge2, 0), allAdjacencyEdges);
     }
     assert(newEdge1 != NULL);
     assert(newEdge2 != NULL);
@@ -401,8 +401,8 @@ static AdjacencySwitch *getBest2EdgeAdjacencySwitch(stList *components,
             lowestScoreEdge2,
             newEdge1,
             newEdge2,
-            stIntTuple_getPosition(lowestScoreEdge1, 2)
-                    + stIntTuple_getPosition(lowestScoreEdge2, 2));
+            stIntTuple_get(lowestScoreEdge1, 2)
+                    + stIntTuple_get(lowestScoreEdge2, 2));
 }
 
 static AdjacencySwitch *getBestAdjacencySwitch(stList *cycles,
@@ -624,7 +624,7 @@ static stSortedSet *getOddNodes(stList *cycle) {
             (void(*)(void *)) stIntTuple_destruct);
 
     stHash *nodesToEdges = getNodesToEdgesHash(cycle);
-    int64_t node = stIntTuple_getPosition(stList_get(cycle, 0), 0);
+    int64_t node = stIntTuple_get(stList_get(cycle, 0), 0);
     int64_t pNode = -1;
     int64_t counter = 0;
     bool b = 1;
@@ -666,8 +666,8 @@ static stList *getOddToEvenAdjacencyEdges(stSortedSet *oddNodes,
     stList *oddToEvenAdjacencyEdges = stList_construct();
     for (int64_t i = 0; i < stList_length(adjacencyEdges); i++) {
         stIntTuple *edge = stList_get(adjacencyEdges, i);
-        if (nodeInSet(oddNodes, stIntTuple_getPosition(edge, 0)) ^ nodeInSet(
-                oddNodes, stIntTuple_getPosition(edge, 1))) {
+        if (nodeInSet(oddNodes, stIntTuple_get(edge, 0)) ^ nodeInSet(
+                oddNodes, stIntTuple_get(edge, 1))) {
             stList_append(oddToEvenAdjacencyEdges, edge);
         }
     }
@@ -711,8 +711,8 @@ static void splitIntoAdjacenciesStubsAndChains(stList *subCycle,
     stSortedSet *nodes = getNodeSetOfEdges(subCycle);
     for (int64_t j = 0; j < stList_length(adjacencyEdges); j++) {
         stIntTuple *edge = stList_get(adjacencyEdges, j);
-        if (nodeInSet(nodes, stIntTuple_getPosition(edge, 0)) && nodeInSet(
-                nodes, stIntTuple_getPosition(edge, 1))) {
+        if (nodeInSet(nodes, stIntTuple_get(edge, 0)) && nodeInSet(
+                nodes, stIntTuple_get(edge, 1))) {
             stList_append(*subAdjacencyEdges, edge);
         }
     }

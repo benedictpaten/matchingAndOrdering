@@ -29,11 +29,11 @@ static stList *translateEdges(stList *edges, stHash *nodesToRebasedNodes) {
     stList *rebasedEdges = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
     for(int64_t i=0; i<stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
-        stIntTuple *node1 = getItemForNode(stIntTuple_getPosition(edge, 0), nodesToRebasedNodes);
-        stIntTuple *node2 = getItemForNode(stIntTuple_getPosition(edge, 1), nodesToRebasedNodes);
+        stIntTuple *node1 = getItemForNode(stIntTuple_get(edge, 0), nodesToRebasedNodes);
+        stIntTuple *node2 = getItemForNode(stIntTuple_get(edge, 1), nodesToRebasedNodes);
         assert(node1 != NULL);
         assert(node2 != NULL);
-        stList_append(rebasedEdges, constructWeightedEdge(stIntTuple_getPosition(node1, 0), stIntTuple_getPosition(node2, 0), stIntTuple_getPosition(edge, 2)));
+        stList_append(rebasedEdges, constructWeightedEdge(stIntTuple_get(node1, 0), stIntTuple_get(node2, 0), stIntTuple_get(edge, 2)));
     }
     return rebasedEdges;
 }
@@ -46,11 +46,11 @@ static stList *translateEdges2(stList *rebasedEdges, stHash *rebasedNodesToNodes
     stList *edges = stList_construct();
     for(int64_t i=0; i<stList_length(rebasedEdges); i++) {
         stIntTuple *rebasedEdge = stList_get(rebasedEdges, i);
-        stIntTuple *node1 = getItemForNode(stIntTuple_getPosition(rebasedEdge, 0), rebasedNodesToNodes);
-        stIntTuple *node2 = getItemForNode(stIntTuple_getPosition(rebasedEdge, 1), rebasedNodesToNodes);
+        stIntTuple *node1 = getItemForNode(stIntTuple_get(rebasedEdge, 0), rebasedNodesToNodes);
+        stIntTuple *node2 = getItemForNode(stIntTuple_get(rebasedEdge, 1), rebasedNodesToNodes);
         assert(node1 != NULL);
         assert(node2 != NULL);
-        stIntTuple *edge = getWeightedEdgeFromSet(stIntTuple_getPosition(node1, 0), stIntTuple_getPosition(node2, 0), originalEdgesSet);
+        stIntTuple *edge = getWeightedEdgeFromSet(stIntTuple_get(node1, 0), stIntTuple_get(node2, 0), originalEdgesSet);
         assert(edge != NULL);
         stList_append(edges, edge);
     }

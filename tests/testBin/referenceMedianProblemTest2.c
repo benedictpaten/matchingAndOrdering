@@ -101,8 +101,8 @@ int main(int argc, char *argv[]) {
     }
     for(int64_t j=0; j<stList_length(adjacencyEdges); j++) {
         stIntTuple *edge = stList_get(adjacencyEdges, j);
-        int64_t node1 = convertIN(stIntTuple_getPosition(edge, 0), stubNumber, nodeNumber);
-        int64_t node2 = convertIN(stIntTuple_getPosition(edge, 1), stubNumber, nodeNumber);
+        int64_t node1 = convertIN(stIntTuple_get(edge, 0), stubNumber, nodeNumber);
+        int64_t node2 = convertIN(stIntTuple_get(edge, 1), stubNumber, nodeNumber);
         assert(node1 >= 0 && node1 <= nodeNumber);
         assert(node2 >= 0 && node2 <= nodeNumber);
         adjacencies[node1] = node2;

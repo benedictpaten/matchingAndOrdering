@@ -54,7 +54,7 @@ static ReferenceIntervalInsertion *referenceIntervalInsertion_construct(stIntTup
 
 static double referenceIntervalInsertion_isConnectedLeft(ReferenceIntervalInsertion *referenceIntervalInsertion, float *z,
         int64_t nodeNumber) {
-    int64_t _5Node = stIntTuple_getPosition(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 0 : 1);
+    int64_t _5Node = stIntTuple_get(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 0 : 1);
     assert(referenceIntervalInsertion->referenceInterval != NULL);
     assert(z[referenceIntervalInsertion->referenceInterval->_3Node * nodeNumber + _5Node] >= 0.0);
     return z[referenceIntervalInsertion->referenceInterval->_3Node * nodeNumber + _5Node] > 0.0 ? 1 : 0;
@@ -74,7 +74,7 @@ static int64_t referenceInterval_get5Node(ReferenceInterval *referenceInterval) 
 
 static double referenceIntervalInsertion_isConnectedRight(ReferenceIntervalInsertion *referenceIntervalInsertion, float *z,
         int64_t nodeNumber) {
-    int64_t _3Node = stIntTuple_getPosition(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 1 : 0);
+    int64_t _3Node = stIntTuple_get(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 1 : 0);
     int64_t _5Node = referenceInterval_get5Node(referenceIntervalInsertion->referenceInterval);
     assert(z[_5Node * nodeNumber + _3Node] >= 0.0);
     return z[_5Node * nodeNumber + _3Node] > 0.0 ? 1 : 0;
@@ -103,8 +103,8 @@ static ReferenceIntervalInsertion getMaxReferenceIntervalInsertion(stList *refer
      *
      * Now modified to avoid numerical bug derivied from doing running sum which involved subtraction.
      */
-    int64_t _5Node = stIntTuple_getPosition(chain, 0);
-    int64_t _3Node = stIntTuple_getPosition(chain, 1);
+    int64_t _5Node = stIntTuple_get(chain, 0);
+    int64_t _3Node = stIntTuple_get(chain, 1);
     double maxScore = INT64_MIN;
     bool maxOrientation = 0;
     ReferenceInterval *maxReferenceInterval = NULL;
@@ -163,8 +163,8 @@ static ReferenceInterval *insert(ReferenceIntervalInsertion *referenceIntervalIn
      * Inserts a chain into a reference interval.
      */
     ReferenceInterval *newInterval = referenceInterval_construct(
-            stIntTuple_getPosition(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 0 : 1),
-            stIntTuple_getPosition(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 1 : 0),
+            stIntTuple_get(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 0 : 1),
+            stIntTuple_get(referenceIntervalInsertion->chain, referenceIntervalInsertion->orientation ? 1 : 0),
             referenceIntervalInsertion->referenceInterval->nReferenceInterval, referenceIntervalInsertion->referenceInterval);
     assert(referenceIntervalInsertion->referenceInterval != NULL);
     if (referenceIntervalInsertion->referenceInterval->nReferenceInterval != NULL) {
@@ -192,8 +192,8 @@ stList *makeReferenceGreedily(stList *stubs, stList *chainsList, float *z, int64
     stIntTuple *stub;
     *totalScore = 0.0;
     while ((stub = stList_getNext(it)) != NULL) {
-        int64_t _5Node = stIntTuple_getPosition(stub, 0);
-        int64_t _3Node = stIntTuple_getPosition(stub, 1);
+        int64_t _5Node = stIntTuple_get(stub, 0);
+        int64_t _3Node = stIntTuple_get(stub, 1);
         *totalScore += z[_5Node * nodeNumber + _3Node];
         stList_append(reference, referenceInterval_construct(_5Node, _3Node, NULL, NULL));
     }
@@ -260,7 +260,7 @@ static void removeChainFromReference(stIntTuple *chain, stList *reference, stHas
         referenceInterval->nReferenceInterval->pReferenceInterval = referenceInterval->pReferenceInterval;
     }
     stHash_removeAndFreeKey(referenceIntervalToChainHash, chain);
-    stIntTuple *inverseChain = stIntTuple_construct2(stIntTuple_getPosition(chain, 1), stIntTuple_getPosition(chain, 0));
+    stIntTuple *inverseChain = stIntTuple_construct2(stIntTuple_get(chain, 1), stIntTuple_get(chain, 0));
     stHash_removeAndFreeKey(referenceIntervalToChainHash, inverseChain);
     stIntTuple_destruct(inverseChain);
     free(referenceInterval);
@@ -426,8 +426,8 @@ static stList *getReferenceIntervalInsertions(stList *reference, stIntTuple *cha
      */
     stList *referenceIntervalInsertions = stList_construct3(0, free);
 
-    int64_t _5Node = stIntTuple_getPosition(chain, 0);
-    int64_t _3Node = stIntTuple_getPosition(chain, 1);
+    int64_t _5Node = stIntTuple_get(chain, 0);
+    int64_t _3Node = stIntTuple_get(chain, 1);
     for (int64_t i = 0; i < stList_length(reference); i++) {
         ReferenceInterval *referenceInterval = stList_get(reference, i);
         stList *intervals = stList_construct();

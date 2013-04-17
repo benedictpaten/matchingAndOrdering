@@ -136,7 +136,7 @@ refEdge refAdjListIt_getNext(refAdjListIt *it) {
         e.to = INT64_MAX;
         e.weight = INT64_MAX;
     } else {
-        e.to = stIntTuple_getPosition(i, 0);
+        e.to = stIntTuple_get(i, 0);
         e.weight = *(float *) stHash_search(it->hash, i);
     }
     return e;
@@ -838,7 +838,7 @@ static void reorderReferenceIntervalToAvoidBreakpoints(int64_t startNode, refAdj
     assert(reference_getNext(ref, startNode) == reference_getLast(ref, startNode));
     i = stList_pop(ordering);
     while (stList_length(ordering) >= 1) {
-        int64_t m = stIntTuple_getPosition(i, 0);
+        int64_t m = stIntTuple_get(i, 0);
         assert(!reference_inGraph(ref, m));
         reference_insertNode(ref, n, m);
         n = m;

@@ -45,10 +45,10 @@ stIntTuple *constructWeightedEdge(int64_t node1, int64_t node2, int64_t weight) 
 }
 
 int compareEdgesByWeight(const void *edge, const void *edge2) {
-    assert(stIntTuple_getPosition((stIntTuple *)edge, 0) < stIntTuple_getPosition((stIntTuple *)edge, 1));
-    assert(stIntTuple_getPosition((stIntTuple *)edge2, 0) < stIntTuple_getPosition((stIntTuple *)edge2, 1));
-    int64_t i = stIntTuple_getPosition((stIntTuple *) edge, 2);
-    int64_t j = stIntTuple_getPosition((stIntTuple *) edge2, 2);
+    assert(stIntTuple_get((stIntTuple *)edge, 0) < stIntTuple_get((stIntTuple *)edge, 1));
+    assert(stIntTuple_get((stIntTuple *)edge2, 0) < stIntTuple_get((stIntTuple *)edge2, 1));
+    int64_t i = stIntTuple_get((stIntTuple *) edge, 2);
+    int64_t j = stIntTuple_get((stIntTuple *) edge2, 2);
     return i > j ? 1 : (i < j ? -1 : 0);
 }
 
@@ -56,12 +56,12 @@ int64_t getOtherPosition(stIntTuple *edge, int64_t node) {
     /*
      * Get the other position to the given node in the edge.
      */
-    assert(stIntTuple_getPosition(edge, 0) < stIntTuple_getPosition(edge, 1));
-    if (stIntTuple_getPosition(edge, 0) == node) {
-        return stIntTuple_getPosition(edge, 1);
+    assert(stIntTuple_get(edge, 0) < stIntTuple_get(edge, 1));
+    if (stIntTuple_get(edge, 0) == node) {
+        return stIntTuple_get(edge, 1);
     } else {
-        assert(stIntTuple_getPosition(edge, 1) == node);
-        return stIntTuple_getPosition(edge, 0);
+        assert(stIntTuple_get(edge, 1) == node);
+        return stIntTuple_get(edge, 0);
     }
 }
 
@@ -89,9 +89,9 @@ stSortedSet *getNodeSetOfEdges(stList *edges) {
             (void(*)(void *)) stIntTuple_destruct);
     for (int64_t i = 0; i < stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
-        assert(stIntTuple_getPosition(edge, 0) < stIntTuple_getPosition(edge, 1));
-        getNodeSetOfEdgesP(nodes, stIntTuple_getPosition(edge, 0));
-        getNodeSetOfEdgesP(nodes, stIntTuple_getPosition(edge, 1));
+        assert(stIntTuple_get(edge, 0) < stIntTuple_get(edge, 1));
+        getNodeSetOfEdgesP(nodes, stIntTuple_get(edge, 0));
+        getNodeSetOfEdgesP(nodes, stIntTuple_get(edge, 1));
     }
     return nodes;
 }
@@ -149,15 +149,15 @@ stIntTuple *getWeightedEdgeFromSet(int64_t node1, int64_t node2,
     stIntTuple *edge2 = stSortedSet_searchGreaterThanOrEqual(allAdjacencyEdges,
             edge);
     stIntTuple_destruct(edge);
-    assert(edge2 == NULL || stIntTuple_getPosition(edge2, 0) < stIntTuple_getPosition(edge2, 1));
-    return edge2 != NULL && stIntTuple_getPosition(edge2, 0) == node1
-            && stIntTuple_getPosition(edge2, 1) == node2 ? edge2 : NULL;
+    assert(edge2 == NULL || stIntTuple_get(edge2, 0) < stIntTuple_get(edge2, 1));
+    return edge2 != NULL && stIntTuple_get(edge2, 0) == node1
+            && stIntTuple_get(edge2, 1) == node2 ? edge2 : NULL;
 }
 
 static void getNodesToEdgesHashP(stHash *nodesToEdges, stIntTuple *edge,
         int64_t position) {
     stIntTuple *node = stIntTuple_construct1(
-            stIntTuple_getPosition(edge, position));
+            stIntTuple_get(edge, position));
     stList *edges;
     if ((edges = stHash_search(nodesToEdges, node)) == NULL) {
         edges = stList_construct();
@@ -180,7 +180,7 @@ stHash *getNodesToEdgesHash(stList *edges) {
 
     for (int64_t i = 0; i < stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
-        assert(stIntTuple_getPosition(edge, 0) < stIntTuple_getPosition(edge, 1));
+        assert(stIntTuple_get(edge, 0) < stIntTuple_get(edge, 1));
         getNodesToEdgesHashP(nodesToEdges, edge, 0);
         getNodesToEdgesHashP(nodesToEdges, edge, 1);
     }
@@ -199,7 +199,7 @@ stIntTuple *getEdgeForNodes(int64_t node1, int64_t node2,
     }
     for (int64_t i = 0; i < stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
-        assert(stIntTuple_getPosition(edge, 0) < stIntTuple_getPosition(edge, 1));
+        assert(stIntTuple_get(edge, 0) < stIntTuple_get(edge, 1));
         if (getOtherPosition(edge, node1) == node2) {
             return edge;
         }
@@ -232,7 +232,7 @@ void addEdgeToSet(stSortedSet *edges, int64_t node1, int64_t node2) {
 }
 
 static bool hasGreaterThan0Weight(stIntTuple *edge) {
-    return stIntTuple_getPosition(edge, 2) > 0;
+    return stIntTuple_get(edge, 2) > 0;
 }
 
 stList *getEdgesWithGreaterThanZeroWeight(stList *adjacencyEdges) {
@@ -248,9 +248,9 @@ void logEdges(stList *edges, const char *edgesName) {
         st_logDebug(
                 "Edge, type: %s, node1: %" PRIi64 ", node2: %" PRIi64 ", weight: %" PRIi64 "\n",
                 edgesName,
-                stIntTuple_getPosition(edge, 0),
-                stIntTuple_getPosition(edge, 1),
-                (stIntTuple_length(edge) == 3 ? stIntTuple_getPosition(edge, 2)
+                stIntTuple_get(edge, 0),
+                stIntTuple_get(edge, 1),
+                (stIntTuple_length(edge) == 3 ? stIntTuple_get(edge, 2)
                         : INT64_MAX));
     }
 }

@@ -29,7 +29,7 @@ int64_t matchingCardinality(stList *matching) {
     int64_t totalCardinality = 0;
     for (int64_t i = 0; i < stList_length(matching); i++) {
         stIntTuple *edge = stList_get(matching, i);
-        totalCardinality += stIntTuple_getPosition(edge, 2) > 0 ? 1 : 0;
+        totalCardinality += stIntTuple_get(edge, 2) > 0 ? 1 : 0;
     }
     return totalCardinality;
 }
@@ -41,7 +41,7 @@ int64_t matchingWeight(stList *matching) {
     int64_t totalWeight = 0;
     for(int64_t i=0; i<stList_length(matching); i++) {
         stIntTuple *edge = stList_get(matching, i);
-        totalWeight += stIntTuple_getPosition(edge, 2);
+        totalWeight += stIntTuple_get(edge, 2);
     }
     return totalWeight;
 }
@@ -58,9 +58,9 @@ static void writeGraph(FILE *fileHandle, stList *edges, int64_t nodeNumber) {
     fprintf(fileHandle, "%" PRIi64 " %" PRIi64 "\n", nodeNumber, edgeNumber);
     for(int64_t i=0; i<stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
-        int64_t from =  stIntTuple_getPosition(edge, 0);
-        int64_t to = stIntTuple_getPosition(edge, 1);
-        int64_t weight = stIntTuple_getPosition(edge, 2);
+        int64_t from =  stIntTuple_get(edge, 0);
+        int64_t to = stIntTuple_get(edge, 1);
+        int64_t weight = stIntTuple_get(edge, 2);
         //All the algorithms are minimisation algorithms, so we invert the sign.
         fprintf(fileHandle, "%" PRIi64 " %" PRIi64 " %" PRIi64 "\n", from, to, weight);
     }
@@ -77,14 +77,14 @@ static void writeCliqueGraph(FILE *fileHandle, stList *edges, int64_t nodeNumber
     int64_t edgesWritten = 0;
     for(int64_t i=0; i<stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
-        int64_t from =  stIntTuple_getPosition(edge, 0);
-        int64_t to = stIntTuple_getPosition(edge, 1);
+        int64_t from =  stIntTuple_get(edge, 0);
+        int64_t to = stIntTuple_get(edge, 1);
         assert(from < nodeNumber);
         assert(to < nodeNumber);
         assert(from >= 0);
         assert(to >= 0);
         assert(from != to);
-        int64_t weight = stIntTuple_getPosition(edge, 2);
+        int64_t weight = stIntTuple_get(edge, 2);
         //If is a minimisation algorithms we invert the sign..
         fprintf(fileHandle, "%" PRIi64 " %" PRIi64 " %" PRIi64 "\n", from, to, negativeWeights ? -weight : weight);
         edgesWritten++;
@@ -107,7 +107,7 @@ static stHash *putEdgesInHash(stList *edges) {
     stHash *intsToEdgesHash = stHash_construct3((uint64_t (*)(const void *))stIntTuple_hashKey, (int (*)(const void *, const void *))stIntTuple_equalsFn, (void (*)(void *))stIntTuple_destruct, NULL);
     for(int64_t i=0; i<stList_length(edges); i++) {
         stIntTuple *edge = stList_get(edges, i);
-        stHash_insert(intsToEdgesHash, constructEdge(stIntTuple_getPosition(edge, 0), stIntTuple_getPosition(edge, 1)), edge);
+        stHash_insert(intsToEdgesHash, constructEdge(stIntTuple_get(edge, 0), stIntTuple_get(edge, 1)), edge);
     }
     return intsToEdgesHash;
 }
@@ -216,7 +216,7 @@ stList *chooseMatching_maximumWeightMatching(stList *edges, int64_t nodeNumber) 
  */
 
 int chooseMatching_greedyP(const void *a, const void *b) {
-    return stIntTuple_getPosition((stIntTuple *)a, 2) - stIntTuple_getPosition((stIntTuple *)b, 2);
+    return stIntTuple_get((stIntTuple *)a, 2) - stIntTuple_get((stIntTuple *)b, 2);
 }
 
 stList *chooseMatching_greedy(stList *edges, int64_t nodeNumber) {
@@ -235,12 +235,12 @@ stList *chooseMatching_greedy(stList *edges, int64_t nodeNumber) {
     double strength = INT64_MAX;
     while (stList_length(edges) > 0) {
         stIntTuple *edge = stList_pop(edges);
-        double d = stIntTuple_getPosition(edge, 2);
+        double d = stIntTuple_get(edge, 2);
         assert(d <= strength);
         strength = d;
-        if(!nodeInSet(seen, stIntTuple_getPosition(edge, 0)) && !nodeInSet(seen, stIntTuple_getPosition(edge, 1))) {
-            addNodeToSet(seen, stIntTuple_getPosition(edge, 0));
-            addNodeToSet(seen, stIntTuple_getPosition(edge, 1));
+        if(!nodeInSet(seen, stIntTuple_get(edge, 0)) && !nodeInSet(seen, stIntTuple_get(edge, 1))) {
+            addNodeToSet(seen, stIntTuple_get(edge, 0));
+            addNodeToSet(seen, stIntTuple_get(edge, 1));
             stList_append(matching,edge);
         }
     }

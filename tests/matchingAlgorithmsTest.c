@@ -56,9 +56,9 @@ static void checkMatching(CuTest *testCase, stList *matching, bool perfectMatchi
     stSortedSet *seen = stSortedSet_construct3((int (*)(const void *, const void *))stIntTuple_cmpFn, (void (*)(void *))stIntTuple_destruct);
     for(int64_t i=0; i<stList_length(matching); i++) {
         stIntTuple *edge = stList_get(matching, i);
-        int64_t from = stIntTuple_getPosition(edge, 0);
-        int64_t to = stIntTuple_getPosition(edge, 1);
-        int64_t weight = stIntTuple_getPosition(edge, 2);
+        int64_t from = stIntTuple_get(edge, 0);
+        int64_t to = stIntTuple_get(edge, 1);
+        int64_t weight = stIntTuple_get(edge, 2);
 
         /*
          * Check bounds are valid.

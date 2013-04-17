@@ -4,7 +4,7 @@
 void checkEdges(stList *edges, stSortedSet * nodes, bool coversAllNodes,
         bool isClique) {
     int64_t nodeNumber = stSortedSet_size(nodes);
-    int64_t maxNode = nodeNumber == 0 ? 0 : stIntTuple_getPosition(stSortedSet_getLast(nodes), 0);
+    int64_t maxNode = nodeNumber == 0 ? 0 : stIntTuple_get(stSortedSet_getLast(nodes), 0);
     (void)maxNode;
     stSortedSet *edgesSeen = stSortedSet_construct3(
             (int(*)(const void *, const void *)) stIntTuple_cmpFn,
@@ -14,26 +14,26 @@ void checkEdges(stList *edges, stSortedSet * nodes, bool coversAllNodes,
         /*
          * Check edges connect actual nodes.
          */
-        assert(stIntTuple_getPosition(edge, 0) >= 0);
-        assert(stIntTuple_getPosition(edge, 0) <= maxNode);
-        assert(stIntTuple_getPosition(edge, 1) >= 0);
-        assert(stIntTuple_getPosition(edge, 1) <= maxNode);
+        assert(stIntTuple_get(edge, 0) >= 0);
+        assert(stIntTuple_get(edge, 0) <= maxNode);
+        assert(stIntTuple_get(edge, 1) >= 0);
+        assert(stIntTuple_get(edge, 1) <= maxNode);
         assert(
-                stIntTuple_getPosition(edge, 1) != stIntTuple_getPosition(edge,
+                stIntTuple_get(edge, 1) != stIntTuple_get(edge,
                         0)); //No self edges!
         /*
          * Check is not a multi-graph.
          */
         assert(
-                !edgeInSet(edgesSeen, stIntTuple_getPosition(edge, 0),
-                        stIntTuple_getPosition(edge, 1)));
-        addEdgeToSet(edgesSeen, stIntTuple_getPosition(edge, 0),
-                stIntTuple_getPosition(edge, 1));
+                !edgeInSet(edgesSeen, stIntTuple_get(edge, 0),
+                        stIntTuple_get(edge, 1)));
+        addEdgeToSet(edgesSeen, stIntTuple_get(edge, 0),
+                stIntTuple_get(edge, 1));
         /*
          * Check weight, if  weighted.
          */
         if (stIntTuple_length(edge) == 3) {
-            assert(stIntTuple_getPosition(edge, 2) >= 0);
+            assert(stIntTuple_get(edge, 2) >= 0);
         } else {
             assert(stIntTuple_length(edge) == 2);
         }

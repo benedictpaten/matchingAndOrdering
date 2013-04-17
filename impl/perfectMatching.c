@@ -20,7 +20,7 @@ static void makeMatchingPerfect(stList *chosenEdges, stList *adjacencyEdges,
                 pNode = node;
             } else {
                 stList_append(chosenEdges,
-                        getEdgeForNodes(stIntTuple_getPosition(pNode, 0), stIntTuple_getPosition(node, 0), nodesToAdjacencyEdges));
+                        getEdgeForNodes(stIntTuple_get(pNode, 0), stIntTuple_get(node, 0), nodesToAdjacencyEdges));
                 pNode = NULL;
             }
         }
