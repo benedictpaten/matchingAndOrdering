@@ -38,7 +38,7 @@ static stList *convertReferenceToAdjacencyEdges2(reference *ref) {
     stList *edges = stList_construct3(0, (void(*)(void *)) stIntTuple_destruct);
     for(int64_t i=0; i<reference_getIntervalNumber(ref); i++) {
         int64_t n = reference_getFirstOfInterval(ref, i);
-        while(reference_getNext(ref, n) != INT32_MAX) {
+        while(reference_getNext(ref, n) != INT64_MAX) {
             stList_append(edges, constructEdge(n, reference_getNext(ref, n)));
             n = -reference_getNext(ref, n);
         }
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
      * Parse in the chain weights as a list
      * of the form end1, end2, weight
      */
-    refAdjList *aL = adjList_construct(nodeNumber / 2 + stubNumber/2);
+    refAdjList *aL = refAdjList_construct(nodeNumber / 2 + stubNumber/2);
     int64_t weightNumber;
     i = scanf("%" PRIi64 "", &weightNumber);
     assert(i == 1);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
         assert(node1 != node2);
         assert(node1 >= 0 && node1 < nodeNumber);
         assert(node2 >= 0 && node2 < nodeNumber);
-        adjList_addToWeight(aL, convertN(node1, stubNumber, nodeNumber), convertN(node2, stubNumber, nodeNumber), weight);
+        refAdjList_addToWeight(aL, convertN(node1, stubNumber, nodeNumber), convertN(node2, stubNumber, nodeNumber), weight);
     }
     /*
      * Compute the ordering
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
     assert(stList_length(adjacencyEdges) == nodeNumber/2);
     int64_t adjacencies[nodeNumber];
     for(int64_t j=0; j<nodeNumber; j++) {
-        adjacencies[j] = INT32_MAX;
+        adjacencies[j] = INT64_MAX;
     }
     for(int64_t j=0; j<stList_length(adjacencyEdges); j++) {
         stIntTuple *edge = stList_get(adjacencyEdges, j);
@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
         adjacencies[node2] = node1;
     }
     for(int64_t j=0; j<nodeNumber; j++) {
-        assert(adjacencies[j] != INT32_MAX);
+        assert(adjacencies[j] != INT64_MAX);
         assert(adjacencies[j] >= 0 && adjacencies[j] < nodeNumber);
     }
     //Now print out the median

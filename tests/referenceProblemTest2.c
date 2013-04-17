@@ -22,8 +22,8 @@ static int64_t testNumber = 20;
 
 static void teardown() {
     if (aL != NULL) {
-        adjList_destruct(aL);
-        adjList_destruct(dAL);
+        refAdjList_destruct(aL);
+        refAdjList_destruct(dAL);
         reference_destruct(ref);
         aL = NULL;
     }
@@ -45,8 +45,8 @@ static void setup() {
     intervalNumber = nodeNumber > 0 ? (nodeNumber > 2 ? st_randomInt(1, nodeNumber / 2) : 1) : 0;
     weightNumber = nodeNumber >= 1 ? st_randomInt(0, nodeNumber * nodeNumber * 4) : 0;
 
-    aL = adjList_construct(nodeNumber);
-    dAL = adjList_construct(nodeNumber);
+    aL = refAdjList_construct(nodeNumber);
+    dAL = refAdjList_construct(nodeNumber);
     ref = reference_construct();
     for (int64_t i = 0; i < intervalNumber; i++) {
         reference_makeNewInterval(ref, 2 * i + 1, 2 * i + 2);
@@ -56,9 +56,9 @@ static void setup() {
         int64_t node1 = getRandomNode(nodeNumber);
         int64_t node2 = getRandomNode(nodeNumber);
         double score = st_random();
-        adjList_addToWeight(aL, node1, node2, score);
-        if (score > 0.8 && adjList_getWeight(dAL, node1, node2) == 0.0) {
-            adjList_addToWeight(dAL, node1, node2, score); //0.8 thresholds ensures that nudging algorithms always results in fewer adjacencies.
+        refAdjList_addToWeight(aL, node1, node2, score);
+        if (score > 0.8 && refAdjList_getWeight(dAL, node1, node2) == 0.0) {
+            refAdjList_addToWeight(dAL, node1, node2, score); //0.8 thresholds ensures that nudging algorithms always results in fewer adjacencies.
         }
     }
     st_logDebug("To test the adjacency problem we've created a problem with %" PRIi64 " nodes, %" PRIi64 " intervals and %" PRIi64 " weights\n", nodeNumber,
@@ -73,7 +73,7 @@ static void checkIsValidReference(CuTest *testCase) {
     for (int64_t i = 0; i < intervalNumber; i++) {
         int64_t n = reference_getFirstOfInterval(ref, i);
         CuAssertIntEquals(testCase, 2*i+1, n);
-        while (reference_getNext(ref, n) != INT32_MAX) {
+        while (reference_getNext(ref, n) != INT64_MAX) {
             CuAssertTrue(testCase, n <= nodeNumber);
             CuAssertTrue(testCase, n >= -nodeNumber);
             CuAssertTrue(testCase, n != 0);
@@ -92,21 +92,21 @@ static void checkIsValidReference(CuTest *testCase) {
 }
 
 static void testEdge(CuTest *testCase) {
-    refEdge e = edge_construct(1, 5.0);
-    CuAssertIntEquals(testCase, edge_to(&e), 1);
-    CuAssertDblEquals(testCase, edge_weight(&e), 5.0, 0.0);
+    refEdge e = refEdge_construct(1, 5.0);
+    CuAssertIntEquals(testCase, refEdge_to(&e), 1);
+    CuAssertDblEquals(testCase, refEdge_weight(&e), 5.0, 0.0);
 }
 
 static void testAdjList(CuTest *testCase) {
     for (int64_t i = 0; i < testNumber; i++) {
         setup();
-        CuAssertIntEquals(testCase, adjList_getNodeNumber(aL),nodeNumber);
+        CuAssertIntEquals(testCase, refAdjList_getNodeNumber(aL),nodeNumber);
         if (nodeNumber > 0) {
             for (int64_t j = 0; j < 100; j++) {
                 int64_t n1 = getRandomNode(nodeNumber), n2 = getRandomNode(nodeNumber);
                 float w = st_random();
-                adjList_setWeight(aL, n1, n2, w);
-                CuAssertDblEquals(testCase, adjList_getWeight(aL, n1, n2), w, 0.0);
+                refAdjList_setWeight(aL, n1, n2, w);
+                CuAssertDblEquals(testCase, refAdjList_getWeight(aL, n1, n2), w, 0.0);
             }
         }
         double totalWeight = 0.0;
@@ -115,14 +115,14 @@ static void testAdjList(CuTest *testCase) {
                 for (int64_t n2 = n1; n2 <= nodeNumber; n2++) {
                     if (n2 != 0) {
                         float w = st_random();
-                        adjList_setWeight(aL, n1, n2, w);
+                        refAdjList_setWeight(aL, n1, n2, w);
                         totalWeight += w;
                     }
                 }
             }
         }
-        st_logDebug("The weights were %f %f\n", adjList_getMaxPossibleScore(aL), totalWeight);
-        CuAssertDblEquals(testCase, adjList_getMaxPossibleScore(aL), totalWeight, 0.0001);
+        st_logDebug("The weights were %f %f\n", refAdjList_getMaxPossibleScore(aL), totalWeight);
+        CuAssertDblEquals(testCase, refAdjList_getMaxPossibleScore(aL), totalWeight, 0.0001);
         teardown();
     }
 }
@@ -134,10 +134,10 @@ static void testReference(CuTest *testCase) {
         for (int64_t j = 0; j < intervalNumber; j++) {
             CuAssertIntEquals(testCase, reference_getFirstOfInterval(ref, j), j*2 + 1);
             CuAssertIntEquals(testCase, reference_getNext(ref, j*2 + 1), j*2 + 2);
-            CuAssertIntEquals(testCase, reference_getNext(ref, j*2 + 2), INT32_MAX);
-            CuAssertIntEquals(testCase, reference_getLast(ref, j*2 + 1), j*2 + 2);
-            CuAssertIntEquals(testCase, reference_getPrevious(ref, j*2 + 1), INT32_MAX);
-            CuAssertIntEquals(testCase, reference_getPrevious(ref, j*2 + 2), j*2 + 1);
+            CuAssertTrue(testCase, reference_getNext(ref, j*2 + 2) == INT64_MAX);
+            CuAssertTrue(testCase, reference_getLast(ref, j*2 + 1) == j*2 + 2);
+            CuAssertTrue(testCase, reference_getPrevious(ref, j*2 + 1) == INT64_MAX);
+            CuAssertTrue(testCase, reference_getPrevious(ref, j*2 + 2) == j*2 + 1);
             CuAssertTrue(testCase, reference_inGraph(ref, j*2 + 1));
             CuAssertTrue(testCase, reference_inGraph(ref, j*2 + 2));
             CuAssertTrue(testCase, reference_cmp(ref, j*2 + 1, j*2 + 2) == -1);
@@ -147,8 +147,8 @@ static void testReference(CuTest *testCase) {
             CuAssertTrue(testCase, !reference_getOrientation(ref, -(j*2 + 1)));
             CuAssertTrue(testCase, reference_getOrientation(ref, (j*2 + 2)));
             CuAssertTrue(testCase, !reference_getOrientation(ref, -(j*2 + 2)));
-            CuAssertIntEquals(testCase, reference_getFirst(ref, j*2 + 1), j*2 + 1);
-            CuAssertIntEquals(testCase, reference_getFirst(ref, j*2 + 2), j*2 + 1);
+            CuAssertTrue(testCase, reference_getFirst(ref, j*2 + 1) == j*2 + 1);
+            CuAssertTrue(testCase, reference_getFirst(ref, j*2 + 2) == j*2 + 1);
         }
         st_logInfo("The reference for the %" PRIi64 " th test\n", i);
         reference_log(ref);
@@ -164,7 +164,7 @@ static void testReferenceRandom(CuTest *testCase) {
             reference_insertNode(ref, n - 1 > 2 * intervalNumber ? n - 1 : 1, n);
         }
         st_logInfo("Random it took %" PRIi64 " seconds, score: %f of possible: %f\n", time(NULL) - startTime, getReferenceScore(aL, ref),
-                adjList_getMaxPossibleScore(aL));
+                refAdjList_getMaxPossibleScore(aL));
         st_logInfo("The reference for the %" PRIi64 " th test\n", i);
         reference_log(ref);
         checkIsValidReference(testCase);
@@ -173,33 +173,32 @@ static void testReferenceRandom(CuTest *testCase) {
 }
 
 static void testMakeReferenceGreedily(CuTest *testCase) {
-    return;
     for (int64_t i = 0; i < testNumber; i++) {
         setup();
         time_t startTime = time(NULL);
         makeReferenceGreedily2(aL, ref);
         st_logInfo("Greedy it took %" PRIi64 " seconds, score: %f of possible: %f, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
-                getReferenceScore(aL, ref), adjList_getMaxPossibleScore(aL), getBadAdjacencyCount(aL, ref));
+                getReferenceScore(aL, ref), refAdjList_getMaxPossibleScore(aL), getBadAdjacencyCount(aL, ref));
         checkIsValidReference(testCase);
         updateReferenceGreedily(aL, ref, 10);
         double greedyPermutationScore = getReferenceScore(aL, ref);
         int64_t badAdjacencyCountGreedyPermutations = getBadAdjacencyCount(dAL, ref);
         st_logInfo("Greedy with update permutations, it took %" PRIi64 " seconds, score: %f of possible: %f, bad adjacency count: %" PRIi64 "\n",
-                time(NULL) - startTime, greedyPermutationScore, adjList_getMaxPossibleScore(aL), badAdjacencyCountGreedyPermutations);
+                time(NULL) - startTime, greedyPermutationScore, refAdjList_getMaxPossibleScore(aL), badAdjacencyCountGreedyPermutations);
         checkIsValidReference(testCase);
         reorderReferenceToAvoidBreakpoints(aL, ref);
         double topologicalReorderedScore = getReferenceScore(aL, ref);
         checkIsValidReference(testCase);
         int64_t topologicalBadAdjacencyCount = getBadAdjacencyCount(dAL, ref);
         st_logInfo("Reordered score, it took %" PRIi64 " seconds, score: %f of possible: %f, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
-                topologicalReorderedScore, adjList_getMaxPossibleScore(aL), topologicalBadAdjacencyCount);
+                topologicalReorderedScore, refAdjList_getMaxPossibleScore(aL), topologicalBadAdjacencyCount);
         CuAssertTrue(testCase, topologicalReorderedScore >= greedyPermutationScore);
         //CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= badAdjacencyCountGreedyPermutations);
         nudgeGreedily(dAL, aL, ref, 10, 100);
         double nudgeScore = getReferenceScore(aL, ref);
         checkIsValidReference(testCase);
         st_logInfo("Nudge score, it took %" PRIi64 " seconds, score: %f of possible: %f, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
-                nudgeScore, adjList_getMaxPossibleScore(aL), getBadAdjacencyCount(dAL, ref));
+                nudgeScore, refAdjList_getMaxPossibleScore(aL), getBadAdjacencyCount(dAL, ref));
         CuAssertTrue(testCase, nudgeScore >= topologicalReorderedScore);
         CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= topologicalBadAdjacencyCount);
         reference_log(ref);
@@ -211,7 +210,7 @@ static void fn(double theta, int64_t node1, int64_t node2, int64_t adjacencyLeng
         int64_t degree) {
     double d = degree * calculateZScore(node1Length, node2Length, adjacencyLength, theta);
     assert(node1 != node2);
-    adjList_setWeight(aL, node1, node2, adjList_getWeight(aL, node1, node2) + d);
+    refAdjList_setWeight(aL, node1, node2, refAdjList_getWeight(aL, node1, node2) + d);
 }
 
 static void testADBDCExample(CuTest *testCase) {
@@ -230,7 +229,7 @@ static void testADBDCExample(CuTest *testCase) {
     int64_t _3D = -4;
     int64_t DL = 2;
     nodeNumber = 4;
-    aL = adjList_construct(nodeNumber);
+    aL = refAdjList_construct(nodeNumber);
     ref = reference_construct();
 
     int64_t adjacencyLength = 1;
@@ -238,8 +237,6 @@ static void testADBDCExample(CuTest *testCase) {
     double theta = 0.0;
 
     reference_makeNewInterval(ref, C, A);
-    st_uglyf("This is the test!!!!! %i %i %i %i %i %i %i\n", sizeof(connectedNodes), sizeof(refEdge), sizeof(refAdjList), sizeof(refAdjListIt), sizeof(reference), sizeof(referenceTerm), sizeof(insertPoint));
-
     //stList_append(chains, stIntTuple_construct(2, _5B, _3B));
     //stList_append(chains, stIntTuple_construct(2, _5D, _3D));
 
@@ -261,7 +258,7 @@ static void testADBDCExample(CuTest *testCase) {
     makeReferenceGreedily2(aL, ref);
     updateReferenceGreedily(aL, ref, 100);
     st_logInfo("Running reference example problem, score: %f of possible: %f\n", getReferenceScore(aL, ref),
-            adjList_getMaxPossibleScore(aL));
+            refAdjList_getMaxPossibleScore(aL));
     reference_log(ref);
 }
 
