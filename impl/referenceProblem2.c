@@ -855,7 +855,7 @@ void reorderReferenceToAvoidBreakpoints(refAdjList *aL, reference *ref) {
     }
 }
 
-int64_t *getDpTraceBackMatrix(refAdjList *aL, int64_t *nodes, int64_t nodesLength) {
+int64_t *getDpTraceBackMatrix(refAdjList *aL, int64_t *nodes, int64_t *iNodes, int64_t nodesLength) {
     //make the dp matrix
     double dpMatrix = st_calloc(nodesLength, sizeof(double));
     //make the traceback matrix
@@ -866,12 +866,23 @@ int64_t *getDpTraceBackMatrix(refAdjList *aL, int64_t *nodes, int64_t nodesLengt
     //Do the dp recursion
     for(int64_t i=0; i<nodesLength; i++) {
         int64_t n = nodes[i];
-        refAdjListIt it = refAdjList_getEdgeIt(ref);
-        refEdge e = refAdjListIt_getNext(&it)
-        while(edge_to(&e) != INT64_MAX) {
-
+        refAdjListIt it = adjList_getEdgeIt(aL, n);
+        refEdge e = refAdjListIt_getNext(&it);
+        int64_t m;
+        while((m = refEdge_to(&e)) != INT64_MAX) {
+        	//Check is consistent with reference.
+        	if(reference_cmp(ref, m, n) < 0 && !reference_getOrientation(m)) {
+        		//Now convert to "nodes" array coordinates
+        		int64_t j = iNodes[llabs(m)]; //this is where conversion between ref and array coordinates takes place
+        		double score = dpMatrix[j] + refEdge_weight(&e);
+        		if(dpMatrix[i] < score) {
+        			dpMatrix[i] = score;
+        			dpTraceBackMatrix[i] = j;
+        		}
+        	}
+        	e = refAdjListIt_getNext(&it);
         }
-
+        refAdjListIt_destruct(&it);
     }
     //cleanup
     free(dpMatrix);
@@ -885,7 +896,7 @@ void getLongestPath(reference *ref, int64_t *dpTraceBackMatrix, int64_t *nodes, 
            stList_append(stack, stIntTuple_construct1(nodes[toNode]));
        }
        coveredNodes[toNode] = 1;
-       toNode = dpTraceBackMatrix[toNode];
+       toNode = dpTraceBackMatrix[toNode]; //the traceback matrix is in array coordinates
    } while(toNode != -1 && !coveredNodes[toNode]);
 }
 
