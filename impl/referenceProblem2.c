@@ -381,6 +381,16 @@ int64_t reference_getLast(reference *ref, int64_t n) {
     return n;
 }
 
+int64_t reference_getLength(reference *ref, int64_t startNode) {
+    assert(reference_inGraph(ref, n));
+    int32_t i = 1;
+    while (reference_getNext(ref, n) != INT64_MAX) {
+        n = reference_getNext(ref, n);
+        i++;
+    }
+    return i;
+}
+
 int reference_cmp(reference *ref, int64_t n1, int64_t n2) {
     referenceTerm *rT1 = reference_getTerm(ref, n1), *rT2 = reference_getTerm(ref, n2);
     assert(rT1 != NULL);
@@ -855,9 +865,9 @@ void reorderReferenceToAvoidBreakpoints(refAdjList *aL, reference *ref) {
     }
 }
 
-int64_t *getDpTraceBackMatrix(refAdjList *aL, int64_t *nodes, int64_t *iNodes, int64_t nodesLength) {
+int64_t *getDpTraceBackMatrix(refAdjList *aL, reference *ref, int64_t *nodes, int64_t *iNodes, int64_t nodesLength) {
     //make the dp matrix
-    double dpMatrix = st_calloc(nodesLength, sizeof(double));
+    double *dpMatrix = st_calloc(nodesLength, sizeof(double));
     //make the traceback matrix
     int64_t *dpTraceBackMatrix = st_malloc(sizeof(int64_t) * nodesLength);
     for(int64_t i=0; i<nodesLength; i++) {
@@ -871,11 +881,11 @@ int64_t *getDpTraceBackMatrix(refAdjList *aL, int64_t *nodes, int64_t *iNodes, i
         int64_t m;
         while((m = refEdge_to(&e)) != INT64_MAX) {
         	//Check is consistent with reference.
-        	if(reference_cmp(ref, m, n) < 0 && !reference_getOrientation(m)) {
+        	if(reference_cmp(ref, m, n) < 0 && !reference_getOrientation(ref, m)) {
         		//Now convert to "nodes" array coordinates
-        		int64_t j = iNodes[llabs(m)]; //this is where conversion between ref and array coordinates takes place
+        		int64_t j = iNodes[llabs(m)]; //this is where conversion back between ref and array coordinates takes place
         		double score = dpMatrix[j] + refEdge_weight(&e);
-        		if(dpMatrix[i] < score) {
+        		if(score > dpMatrix[i]) {
         			dpMatrix[i] = score;
         			dpTraceBackMatrix[i] = j;
         		}
@@ -915,42 +925,48 @@ void insertIntoReference(reference *ref, int64_t pNode, stList *stack) {
     }
 }
 
-void reorderReferenceToAvoidBreakpoints(refAdjList *aL, reference *ref, int32_t startNode) {
+void makeHighestWeightPath(refAdjList *aL, reference *ref) {
     //Get sequence of nodes
-    int64_t nodeNumber = reference_getLength(ref, startNode); //We ignore the very first node
-    assert(nodeNumber > 0);
-    int64_t *nodes = st_malloc(nodeNumber * sizeof(int64_t));
-    int64_t i=0;
-    int64_t n = startNode;
-    do {
-        nodes[i++] = n;
-    } while((n = reference_getNext(ref, n)) != INT64_MAX);
+    int64_t *iNodes = st_calloc(refAdjList_getNodeNumber(aL), sizeof(int64_t));
+    for(int64_t interval=0; interval<reference_getIntervalNumber(ref); interval++) {
+        int64_t startNode = reference_getFirstOfInterval(ref, interval);
+        int64_t nodesLength = reference_getLength(ref, startNode); //We ignore the very first node
+        assert(nodesLength > 0);
+        int64_t *nodes = st_malloc(nodesLength * sizeof(int64_t));
+        int64_t i=0;
+        int64_t n = startNode;
+        do {
+            nodes[i] = n;
+            iNodes[llabs(n)] = i++;
+        } while((n = reference_getNext(ref, n)) != INT64_MAX);
 
-    //Create the dp matrix
-    int64_t *dPMatrix = getDpMatrix(aL, nodes, nodeNumber);
+        //Create the dp matrix
+        int64_t *dpTraceBackMatrix = getDpTraceBackMatrix(aL, ref, nodes, iNodes, nodesLength);
 
-    //Empty old reference
-    n = startNode; //Remove the old nodes (this doesn't mess with the first and last nodes).
-    while (reference_getNext(ref, n) != INT64_MAX) {
-        int64_t m = reference_getNext(ref, n);
-        reference_removeNode(ref, n);
-        n = m;
-    }
-
-    //Now walk back over the nodes, finding subsequences of nodes not yet in the reference.
-    bool *coveredNodes = st_calloc(nodeNumber, sizeof(bool));
-    stList *stack = stList_construct();
-    for(int64_t i=nodeNumber-1; i>= 0; i--) {
-        if(!coveredNodes[i]) { //Have a node to put in the reference
-            getLongestPath(dPMatrix, nodes, coveredNodes, nodeNumber, i);
-            int64_t m = getBestInsertionPoint(ref, startNode, aL, stIntTuple_get(stList_get(stack, stList_length(stack)-1)), stIntTuple_get(stList_get(stack, 0)));
-            insertIntoReference(ref, pNode, stack);
+        //Empty old reference
+        n = startNode; //Remove the old nodes (this doesn't mess with the first and last nodes).
+        while (reference_getNext(ref, n) != INT64_MAX) {
+            int64_t m = reference_getNext(ref, n);
+            reference_removeNode(ref, n);
+            n = m;
         }
-    }
 
-    //Cleanup
-    free(nodes);
-    free(dPMatrix);
-    free(coveredNodes);
-    stList_destruct(stack);
+        //Now walk back over the nodes, finding subsequences of nodes not yet in the reference.
+        bool *coveredNodes = st_calloc(nodesLength, sizeof(bool));
+        stList *stack = stList_construct();
+        for(int64_t i=nodesLength-1; i>= 0; i--) {
+            if(!coveredNodes[i]) { //Have a node to put in the reference
+                getLongestPath(ref, dpTraceBackMatrix, nodes, coveredNodes, nodesLength, i, stack);
+                int64_t pNode = getBestInsertionPoint(ref, startNode, aL, stIntTuple_get(stList_get(stack, stList_length(stack)-1), 0), stIntTuple_get(stList_get(stack, 0), 0));
+                insertIntoReference(ref, pNode, stack);
+            }
+        }
+
+        //Cleanup
+        free(nodes);
+        free(dpTraceBackMatrix);
+        free(coveredNodes);
+        stList_destruct(stack);
+    }
+    free(iNodes);
 }
