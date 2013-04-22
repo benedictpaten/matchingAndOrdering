@@ -767,6 +767,7 @@ static bool visitP(int64_t n, stSortedSet *visited, stSortedSet *visiting, refAd
         stSortedSet_insert(visiting, i);
         stList *validEdges = getValidEdges(-n, aL, ref); //The minus sign is because we seek edges incident with the righthand side of the segment.
         stList_sort(validEdges, (int(*)(const void *, const void *)) refEdge_cmpByWeight);
+        stList_reverse(validEdges); //Traverse edges in reverse order of weight. This should be better, as it will ensure the highest weight adjacency appears in the reference, providing that it can be included in the DFS tree.
         stList_append(stack, i);
         stList_append(stack, validEdges);
         return 1;
