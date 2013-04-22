@@ -91,7 +91,7 @@ static int64_t convertN(refAdjList *aL, int64_t n) {
 
 float refAdjList_getWeight(refAdjList *aL, int64_t n1, int64_t n2) {
     checkN(n2, aL->nodeNumber);
-    stIntTuple *i = stIntTuple_construct1( n2);
+    stIntTuple *i = stIntTuple_construct1(n2);
     float *weight = stHash_search(aL->edgeHashes[convertN(aL, n1)], i);
     stIntTuple_destruct(i);
     return weight == NULL ? 0.0 : weight[0];
@@ -100,7 +100,7 @@ float refAdjList_getWeight(refAdjList *aL, int64_t n1, int64_t n2) {
 static void refAdjList_setWeightP(refAdjList *aL, int64_t n1, int64_t n2, float weight, bool addToWeight) {
     stHash *edges = aL->edgeHashes[convertN(aL, n1)];
     checkN(n2, aL->nodeNumber);
-    stIntTuple *i = stIntTuple_construct1( n2);
+    stIntTuple *i = stIntTuple_construct1(n2);
     float *w = stHash_search(edges, i);
     if (w == NULL) {
         w = st_malloc(sizeof(float));
@@ -136,7 +136,7 @@ refEdge refAdjListIt_getNext(refAdjListIt *it) {
         e.to = INT64_MAX;
         e.weight = INT64_MAX;
     } else {
-        e.to = stIntTuple_getPosition(i, 0);
+        e.to = stIntTuple_get(i, 0);
         e.weight = *(float *) stHash_search(it->hash, i);
     }
     return e;
@@ -226,7 +226,6 @@ static int insertPoint_cmp(insertPoint *iP1, insertPoint *iP2, reference *ref) {
  */
 
 typedef struct _referenceTerm referenceTerm;
-
 
 struct _referenceTerm {
     referenceTerm *first, *pTerm, *nTerm;
@@ -322,8 +321,7 @@ void reference_insertNode(reference *ref, int64_t pNode, int64_t node) {
 }
 
 static void reference_insertNode2(reference *ref, insertPoint *iP) {
-    reference_insertNode(ref,
-            insertPoint_previous(iP) ? insertPoint_adjNode(iP) : reference_getPrevious(ref, insertPoint_adjNode(iP)),
+    reference_insertNode(ref, insertPoint_previous(iP) ? insertPoint_adjNode(iP) : reference_getPrevious(ref, insertPoint_adjNode(iP)),
             insertPoint_node(iP));
 }
 
@@ -379,6 +377,15 @@ int64_t reference_getLast(reference *ref, int64_t n) {
         n = reference_getNext(ref, n);
     }
     return n;
+}
+
+int64_t reference_getIntervalLength(reference *ref, int64_t n) {
+    assert(reference_inGraph(ref, n));
+    int64_t i = 1;
+    while ((n = reference_getNext(ref, n)) != INT64_MAX) {
+        i++;
+    }
+    return i;
 }
 
 int reference_cmp(reference *ref, int64_t n1, int64_t n2) {
@@ -538,8 +545,7 @@ static void getInsertPointsNext(int64_t n, stList *edges, reference *ref, stList
     }
 }
 
-static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdges, reference *ref, refAdjList *aL,
-        stList *insertPoints) {
+static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdges, reference *ref, refAdjList *aL, stList *insertPoints) {
     stList *insertPoints2 = stList_construct();
     getInsertPointsPrevious(n, previousEdges, ref, insertPoints2);
     getInsertPointsNext(n, nextEdges, ref, insertPoints2);
@@ -547,19 +553,14 @@ static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdg
     for (int64_t i = 1; i < stList_length(insertPoints2); i++) {
         insertPoint *iPP = stList_get(insertPoints2, i - 1);
         insertPoint *iPN = stList_get(insertPoints2, i);
-        if (reference_getFirst(ref, insertPoint_adjNode(iPP)) == reference_getFirst(ref, insertPoint_adjNode(iPN))
-                && insertPoint_previous(iPP) && !insertPoint_previous(iPN)) {
-            if (refAdjList_getWeight(aL, n, insertPoint_adjNode(iPP))
-                    > refAdjList_getWeight(aL, -n, insertPoint_adjNode(iPN))) {
-                stList_append(
-                        insertPoints,
-                        insertPoint_construct(n, insertPoint_adjNode(iPP), 1,
-                                insertPoint_score(iPP) + insertPoint_score(iPN)));
+        if (reference_getFirst(ref, insertPoint_adjNode(iPP)) == reference_getFirst(ref, insertPoint_adjNode(iPN)) && insertPoint_previous(
+                iPP) && !insertPoint_previous(iPN)) {
+            if (refAdjList_getWeight(aL, n, insertPoint_adjNode(iPP)) > refAdjList_getWeight(aL, -n, insertPoint_adjNode(iPN))) {
+                stList_append(insertPoints,
+                        insertPoint_construct(n, insertPoint_adjNode(iPP), 1, insertPoint_score(iPP) + insertPoint_score(iPN)));
             } else {
-                stList_append(
-                        insertPoints,
-                        insertPoint_construct(n, insertPoint_adjNode(iPN), 0,
-                                insertPoint_score(iPP) + insertPoint_score(iPN)));
+                stList_append(insertPoints,
+                        insertPoint_construct(n, insertPoint_adjNode(iPN), 0, insertPoint_score(iPP) + insertPoint_score(iPN)));
             }
         }
     }
@@ -612,8 +613,7 @@ void makeReferenceGreedily2(refAdjList *aL, reference *ref) {
         connectedNodes_addNode(cN, n);
         connectedNodes_addNode(cN, -n);
         i++;
-    }
-    st_logDebug("We added %" PRIi64 " connected nodes to the reference of %" PRIi64 " nodes\n", i, refAdjList_getNodeNumber(aL));
+    }st_logDebug("We added %" PRIi64 " connected nodes to the reference of %" PRIi64 " nodes\n", i, refAdjList_getNodeNumber(aL));
     //Iterate over the nodes to check any nodes that are not in the reference
     for (int64_t n = 1; n <= refAdjList_getNodeNumber(aL); n++) {
         insertNode(n, aL, ref);
@@ -635,77 +635,13 @@ void updateReferenceGreedily(refAdjList *aL, reference *ref, int64_t permutation
     }
 }
 
-static void nudge(int64_t n, refAdjList *dAL, refAdjList *aL, reference *ref, int64_t maxNudge) {
-    //Setup the best insertion spot
-    int64_t bestInsert = INT64_MAX;
-    int64_t k = reference_getPrevious(ref, n);
-    int64_t m = reference_getNext(ref, n);
-    assert(k != INT64_MAX && m != INT64_MAX);
-    double existingAdjacency1 = refAdjList_getWeight(dAL, -k, n) + refAdjList_getWeight(dAL, -n, m);
-    double newAdjacency1 = refAdjList_getWeight(dAL, -k, m);
-    double bestScore = existingAdjacency1 - newAdjacency1;
-
-    //Traverse left
-    m = k;
-    k = reference_getPrevious(ref, m);
-    int64_t i = 0;
-    while (k != INT64_MAX && refAdjList_getWeight(aL, -m, n) == 0 && i < maxNudge) { //There is a legitimate place to insert, and we are not contradicting any existing weights.
-        double existingAdjacency2 = refAdjList_getWeight(dAL, -k, m); //Existing weight at insert point
-        double newAdjacency2 = refAdjList_getWeight(dAL, -k, n) + refAdjList_getWeight(dAL, -n, m);
-        double newScore = newAdjacency2 - existingAdjacency2;
-        if (newScore > bestScore) {
-            bestScore = newScore;
-            bestInsert = k;
-        }
-        m = k;
-        k = reference_getPrevious(ref, k);
-        i++;
-    }
-
-    //Traverse right
-    k = reference_getNext(ref, n);
-    m = reference_getNext(ref, k);
-    i = 0;
-    while (m != INT64_MAX && refAdjList_getWeight(aL, -n, k) == 0 && i < maxNudge) { //There is a legitimate place to insert, and we are not contradicting any existing weights.
-        double existingAdjacency2 = refAdjList_getWeight(dAL, -k, m); //Existing weight at insert point
-        double newAdjacency2 = refAdjList_getWeight(dAL, -k, n) + refAdjList_getWeight(dAL, -n, m);
-        double newScore = newAdjacency2 - existingAdjacency2;
-        if (newScore > bestScore) {
-            bestScore = newScore;
-            bestInsert = k;
-        }
-        k = m;
-        m = reference_getNext(ref, m);
-        i++;
-    }
-
-    if (bestInsert != INT64_MAX) {
-        reference_removeNode(ref, n);
-        reference_insertNode(ref, bestInsert, n);
-    }
-}
-
-void nudgeGreedily(refAdjList *dAL, refAdjList *aL, reference *ref, int64_t permutations, int64_t maxNudge) {
-    for (int64_t i = 0; i < permutations; i++) {
-        for (int64_t j = 0; j < reference_getIntervalNumber(ref); j++) {
-            int64_t n = reference_getNext(ref, reference_getFirstOfInterval(ref, j));
-            assert(n != INT64_MAX);
-            int64_t m;
-            while ((m = reference_getNext(ref, n)) != INT64_MAX) {
-                nudge(n, dAL, aL, ref, maxNudge);
-                n = m;
-            }
-        }
-    }
-}
-
 static double getSumOfConsistentAdjacenciesScore(int64_t n, refAdjList *aL, reference *ref) {
     double score = 0.0;
     refAdjListIt it = adjList_getEdgeIt(aL, n);
     refEdge e = refAdjListIt_getNext(&it);
     while (refEdge_to(&e) != INT64_MAX) {
-        if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref,
-                refEdge_to(&e)) && !reference_getOrientation(ref, n) && reference_getOrientation(ref, refEdge_to(&e))) {
+        if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref, refEdge_to(&e))
+                && !reference_getOrientation(ref, n) && reference_getOrientation(ref, refEdge_to(&e))) {
             score += refEdge_weight(&e);
         }
         e = refAdjListIt_getNext(&it);
@@ -738,95 +674,166 @@ int64_t getBadAdjacencyCount(refAdjList *aL, reference *ref) {
     return badAdjacencies;
 }
 
-static stList *getValidEdges(int64_t n, refAdjList *aL, reference *ref) {
-    /*
-     * Get edges from n that are consistent with the reference ordering.
-     */
-    assert(!reference_getOrientation(ref, n));
-    stList *validEdges = stList_construct();
-    refAdjListIt it = adjList_getEdgeIt(aL, n);
-    refEdge e = refAdjListIt_getNext(&it);
-    while (refEdge_to(&e) != INT64_MAX) {
-        if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref,
-                refEdge_to(&e)) && reference_getOrientation(ref, refEdge_to(&e))) {
-            //Is a valid edge
-            stList_append(validEdges, refEdge_copy(&e));
-        }
-        e = refAdjListIt_getNext(&it);
-    }
-    refAdjListIt_destruct(&it);
-    return validEdges;
-}
-
-static bool visitP(int64_t n, stSortedSet *visited, stSortedSet *visiting, refAdjList *aL, reference *ref,
-        stList *ordering, stList *stack) {
-    assert(reference_inGraph(ref, n));
-    stIntTuple *i = stIntTuple_construct1( n);
-    if (stSortedSet_search(visited, i) == NULL) {
-        assert(stSortedSet_search(visiting, i) == NULL); //otherwise we have detected a cycle
-        stSortedSet_insert(visiting, i);
-        stList *validEdges = getValidEdges(-n, aL, ref); //The minus sign is because we seek edges incident with the righthand side of the segment.
-        stList_sort(validEdges, (int(*)(const void *, const void *)) refEdge_cmpByWeight);
-        stList_append(stack, i);
-        stList_append(stack, validEdges);
-        return 1;
-    } else {
-        assert(stSortedSet_search(visiting, i) != NULL);
-        stIntTuple_destruct(i);
-        return 0;
-    }
-}
-
-static void visit(int64_t n, stSortedSet *visited, stSortedSet *visiting, refAdjList *aL, reference *ref,
-        stList *ordering, stList *stack) {
+static void visit(int64_t n, refAdjList *alDag, reference *ref, int64_t *ordering, int64_t *startTimes, int64_t *endTimes, int64_t *stack,
+        refAdjListIt *edgeItStack, int64_t *time, int64_t *rOrder) {
     /*
      * Do DFS of nodes using edges that are consistent with the graph.
      */
-    if (visitP(n, visited, visiting, aL, ref, ordering, stack)) {
+    int64_t i = 0;
+    if (startTimes[n] == 0) {
+        startTimes[n] = (*time)++;
+        refAdjListIt it = adjList_getEdgeIt(alDag, n);
         while (1) {
-            stList *edges = stList_peek(stack);
-            while (stList_length(edges) > 0) {
-                refEdge *e = stList_pop(edges);
-                int64_t m = e->to;
-                free(e);
-                if (visitP(m, visited, visiting, aL, ref, ordering, stack)) {
-                    goto top;
+            refEdge e = refAdjListIt_getNext(&it);
+            int64_t m;
+            while ((m = refEdge_to(&e) != INT64_MAX)) {
+                //Here is where we decide if the edge is consistent with the edge
+                if (startTimes[m] == 0) {
+                    startTimes[m] = (*time)++;
+                    stack[i] = n;
+                    edgeItStack[i++] = it;
+                    n = m;
+                    it = adjList_getEdgeIt(alDag, n);
+                } else {
+                    assert(endTimes[m] != 0);
+                    assert(ordering[m] != 0);
                 }
+                e = refAdjListIt_getNext(&it);
             }
-            stList_destruct(stList_pop(stack));
-            stIntTuple *i = stList_pop(stack);
-            stSortedSet_insert(visited, i);
-            stList_append(ordering, i);
-            if (stList_length(stack) == 0) {
+            refAdjListIt_destruct(&it);
+            endTimes[n] = (*time)++;
+            ordering[n] = (*rOrder)--;
+            if (i == 0) {
                 break;
             }
-            top: ;
+            n = stack[--i];
+            it = edgeItStack[i];
         }
     }
 }
 
-static void reorderReferenceIntervalToAvoidBreakpoints(int64_t startNode, refAdjList *aL, reference *ref) {
+static void getTopologicalOrdering(refAdjList *alDag, reference *ref, int64_t **ordering, int64_t **startTimes, int64_t **endTimes) {
     /*
      * Create a topological sort of the nodes in the reference interval, choosing to traverse more highly weighted edges first,
      * with the aim of creating fewer edges that are inconsistent.
      */
-    stList *stack = stList_construct();
-    stSortedSet *visited = stSortedSet_construct3((int(*)(const void *, const void *)) stIntTuple_cmpFn, NULL);
-    stSortedSet *visiting = stSortedSet_construct3((int(*)(const void *, const void *)) stIntTuple_cmpFn, NULL);
-    stList *ordering = stList_construct();
-    visit(reference_getLast(ref, startNode), visited, visiting, aL, ref, ordering, stack); //Add last node first, as constructed in reverse order.
-    visit(startNode, visited, visiting, aL, ref, ordering, stack); //Visit the start node first
-    stIntTuple *i = stList_pop(ordering); //Remove the first node, as it must appear first
-    int64_t n = startNode;
-    while (reference_getNext(ref, n) != INT64_MAX) { //add any other nodes to the ordering that are not on a path from the start node
-        visit(n, visited, visiting, aL, ref, ordering, stack);
-        n = reference_getNext(ref, n);
+    *ordering = st_calloc(refAdjList_getNodeNumber(alDag), sizeof(int64_t));
+    *startTimes = st_calloc(refAdjList_getNodeNumber(alDag), sizeof(int64_t));
+    *endTimes = st_calloc(refAdjList_getNodeNumber(alDag), sizeof(int64_t));
+    int64_t *stack = st_malloc(refAdjList_getNodeNumber(alDag) * sizeof(int64_t));
+    refAdjListIt *edgeItStack = st_malloc(refAdjList_getNodeNumber(alDag) * sizeof(refAdjListIt));
+    int64_t time = 1;
+    int64_t rOrder = refAdjList_getNodeNumber(alDag);
+    for (int64_t interval = 0; interval < reference_getIntervalNumber(ref); interval++) {
+        int64_t n = reference_getFirstOfInterval(ref, interval);
+        while (reference_getNext(ref, n) != INT64_MAX) { //add any other nodes to the ordering that are not on a path from the start node
+            visit(n, alDag, ref, *ordering, *startTimes, *endTimes, stack, edgeItStack, &time, &rOrder);
+            n = reference_getNext(ref, n);
+        }
     }
-    stSortedSet_destruct(visited);
-    stSortedSet_destruct(visiting);
-    stIntTuple_destruct(i);
+    free(stack);
+    free(edgeItStack);
+}
+
+bool predecessor(int64_t aN, int64_t aM, int64_t *startTimes, int64_t *endTimes) {
+    return startTimes[aN] < startTimes[aM] && endTimes[aN] > endTimes[aM];
+}
+
+bool path(int64_t n, int64_t m, int64_t aM, refAdjList *alDag, int64_t *ordering, int64_t *startTimes, int64_t *endTimes, int64_t *queue,
+        bool *visited) {
+    int64_t i = 0, j = 0;
+    while (1) { //don't add n to visited, as should be no way to get from n back to n in alDag.
+        refAdjListIt it = adjList_getEdgeIt(alDag, n);
+        refEdge e = refAdjListIt_getNext(&it);
+        int64_t p;
+        while ((p = refEdge_to(&e) != INT64_MAX)) {
+            int64_t aP = llabs(p);
+            assert(ordering[llabs(n)] < ordering[aP]);
+            assert(predecessor(llabs(n), aP, startTimes, endTimes));
+            if (ordering[aM] <= ordering[aP]) { //No path possible from p to m.
+                continue;
+            }
+            if (predecessor(aP, aM, startTimes, endTimes)) { //We can reach m from p.
+                //Cleanup
+                refAdjListIt_destruct(&it);
+                for (i = 0; i < j; i++) {
+                    visited[queue[i]] = 0;
+                }
+                return 1;
+            }
+            //In situation where maybe there is a path, so add to the queue to find out.
+            if (!visited[aP]) {
+                visited[aP] = 1;
+                queue[j++] = p;
+            }
+            e = refAdjListIt_getNext(&it);
+        }
+        refAdjListIt_destruct(&it);
+        if (i == j) {
+            break;
+        }
+        n = queue[i++];
+    };
+    for (i = 0; i < j; i++) {
+        visited[queue[i]] = 0;
+    }
+    return 0;
+}
+
+refAdjList *getTransitiveReductionOfEdges(refAdjList *alDag, reference *ref, int64_t *ordering, int64_t *startTimes, int64_t *endTimes) {
+    //Get just edges consistent with reference
+    refAdjList *alDagTr = refAdjList_construct(refAdjList_getNodeNumber(alDag));
+    int64_t *queue = st_malloc(refAdjList_getNodeNumber(alDag) * sizeof(int64_t)); //Array used in path search.
+    bool *visited = st_calloc(refAdjList_getNodeNumber(alDag), sizeof(bool)); //Array used in path search.
+    for (int64_t interval = 0; interval < reference_getIntervalNumber(ref); interval++) {
+        int64_t n = reference_getFirstOfInterval(ref, interval);
+        do {
+            int64_t aN = llabs(n);
+            refAdjListIt it = adjList_getEdgeIt(alDag, n);
+            refEdge e = refAdjListIt_getNext(&it);
+            int64_t m;
+            while ((m = refEdge_to(&e) != INT64_MAX)) {
+                int64_t aM = llabs(m);
+                assert(ordering[aN] < ordering[aM]);
+                assert(predecessor(aN, aM, startTimes, endTimes));
+                if (ordering[aM] - ordering[aN] == 1 || !path(n, m, aM, alDag, ordering, startTimes, endTimes, queue, visited)) {
+                    refAdjList_addToWeight(alDagTr, n, m, refEdge_weight(&e));
+                }
+                e = refAdjListIt_getNext(&it);
+            }
+            refAdjListIt_destruct(&it);
+        } while ((n = reference_getNext(ref, n)) != INT64_MAX);
+    }
+    free(queue);
+    free(visited);
+    return alDagTr;
+}
+
+refAdjList *getEdgesConsistentWithReference(refAdjList *aL, reference *ref) {
+    //Get just edges consistent with reference
+    refAdjList *alDag = refAdjList_construct(refAdjList_getNodeNumber(aL));
+    for (int64_t interval = 0; interval < reference_getIntervalNumber(ref); interval++) {
+        int64_t n = reference_getFirstOfInterval(ref, interval);
+        do {
+            refAdjListIt it = adjList_getEdgeIt(aL, n);
+            refEdge e = refAdjListIt_getNext(&it);
+            int64_t m;
+            while ((m = refEdge_to(&e) != INT64_MAX)) {
+                //Here is where we decide if the edge is consistent with the edge
+                if (reference_getFirst(ref, n) == reference_getFirst(ref, m) && reference_cmp(ref, n, m) < 0 && reference_getOrientation(ref, m)) { //Is part of the dag
+                    refAdjList_addToWeight(alDag, n, m, refEdge_weight(&e));
+                }
+                e = refAdjListIt_getNext(&it);
+            }
+            refAdjListIt_destruct(&it);
+        } while ((n = reference_getNext(ref, n)) != INT64_MAX);
+    }
+    return alDag;
+}
+
+static void rebuildTheReference(int64_t startNode, reference *ref, stList *reverseOrdering) {
     //Now rebuild the reference
-    n = reference_getNext(ref, startNode); //Remove the old nodes (this doesn't mess with the first and last nodes).
+    int64_t n = reference_getNext(ref, startNode); //Remove the old nodes (this doesn't mess with the first and last nodes).
     while (reference_getNext(ref, n) != INT64_MAX) {
         int64_t m = reference_getNext(ref, n);
         reference_removeNode(ref, n);
@@ -836,21 +843,94 @@ static void reorderReferenceIntervalToAvoidBreakpoints(int64_t startNode, refAdj
     assert(reference_getLast(ref, startNode) != INT64_MAX);
     assert(reference_getLast(ref, startNode) != startNode);
     assert(reference_getNext(ref, startNode) == reference_getLast(ref, startNode));
-    i = stList_pop(ordering);
-    while (stList_length(ordering) >= 1) {
-        int64_t m = stIntTuple_getPosition(i, 0);
+    stIntTuple *i = stList_pop(reverseOrdering);
+    while (stList_length(reverseOrdering) >= 1) {
+        int64_t m = stIntTuple_get(i, 0);
         assert(!reference_inGraph(ref, m));
         reference_insertNode(ref, n, m);
         n = m;
         stIntTuple_destruct(i);
-        i = stList_pop(ordering);
+        i = stList_pop(reverseOrdering);
     }
     stIntTuple_destruct(i);
-    stList_destruct(ordering);
+    stList_destruct(reverseOrdering);
 }
 
-void reorderReferenceToAvoidBreakpoints(refAdjList *aL, reference *ref) {
-    for (int64_t i = 0; i < reference_getIntervalNumber(ref); i++) {
-        reorderReferenceIntervalToAvoidBreakpoints(reference_getFirstOfInterval(ref, i), aL, ref);
+static stList *getMatching(refAdjList *al, reference *ref, stList *(*matchingAlgorithm)(stList *, int64_t)) {
+    //Get edges between nodes
+    stList *edges = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
+    for (int64_t interval = 0; interval < reference_getIntervalNumber(ref); interval++) {
+        int64_t n = reference_getFirstOfInterval(ref, interval);
+        do {
+            refAdjListIt it = adjList_getEdgeIt(al, n);
+            refEdge e = refAdjListIt_getNext(&it);
+            int64_t m;
+            while ((m = refEdge_to(&e) != INT64_MAX)) {
+                stList_append(edges, stIntTuple_construct3(convertN(al, n), convertN(al, m), refEdge_weight(&e)));
+                e = refAdjListIt_getNext(&it);
+            }
+            refAdjListIt_destruct(&it);
+        } while ((n = reference_getNext(ref, n)) != INT64_MAX);
     }
+    stList *matching = matchingAlgorithm(edges, refAdjList_getNodeNumber(al)*2);
+    //Convert this to an array.
+    int64_t *matchingArray = st_malloc(2*refAdjList_getNodeNumber(al) * sizeof(int64_t));
+    for(int64_t i=0; i<refAdjList_getNodeNumber(al)*2; i++) {
+        matchingArray[i] = -1;
+    }
+    for(int64_t i=0; i<stList_length(matching); i++) {
+        stIntTuple *e = stList_get(matching, i);
+        matchingArray[stIntTuple_get(e, 0)] = stIntTuple_get(e, 1);
+        matchingArray[stIntTuple_get(e, 1)] = stIntTuple_get(e, 0);
+    }
+    stList_destruct(edges);
+    stList_destruct(matching);
+    //Now construct runs of matching bases
+    bool *visited = st_calloc(refAdjList_getNodeNumber(al), sizeof(bool)); //Array used in path search.
+    stList *contigs = stList_construct3(0, (void (*)(void *))stList_destruct);
+    for(int64_t interval=0; interval<reference_getIntervalNumber(ref); interval++) {
+        int64_t n = reference_getFirstOfInterval(ref, interval);
+        do {
+            if(!visited[llabs(n)]) { //Not yet included in a contig
+                stList *contig = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
+                stList_append(contigs, contig);
+                int64_t m = n;
+                while(1) { //Build it by iterating along matching array until side is encountered with no bond
+                    stList_append(contig, stIntTuple_construct1(m));
+                    visited[llabs(m)] = 1;
+                    int64_t mC = matchingArray[convertN(al, -m)];
+                    if(mC == -1) {
+                        break;
+                    }
+                    m = iConvert(mC);
+                    assert(!visited[llabs(m)]);
+                }
+            }
+        } while((n = reference_getNext(ref, n)) != INT64_MAX);
+    }
+    free(matchingArray);
+    //Now merge the contigs by ordering them.
+    return contigs;
 }
+
+static void reorderReferenceToAvoidBreakpoints(refAdjList *aL, reference *ref, stList *(*matchingAlgorithm)(stList *, int64_t)) {
+    //Make topological ordering as arrays with start and end times
+    int64_t *ordering, *startTimes, *endTimes;
+    refAdjList *alDag = getEdgesConsistentWithReference(aL, ref); //Just the edges we care about
+    getTopologicalOrdering(alDag, ref, &ordering, &startTimes, &endTimes);
+    //Using the topological ordering and start/end time arrays compute the transitive reduction of the direct adjacency edges as a new set of weights
+    refAdjList *alDagTr = getTransitiveReductionOfEdges(alDag, ref, ordering, startTimes, endTimes);
+    //Create a matching of the weights
+    stList *contigs = getMatching(alDagTr, ref, matchingAlgorithm);
+    //Rebuild the reference
+    rebuildTheReference(startNode, ref, contigs);
+
+    //Cleanup
+    free(ordering);
+    free(startTimes);
+    free(endTimes);
+    free(contigs);
+    refAdjList_destruct(alDag);
+    refAdjList_destruct(alDagTr);
+}
+
