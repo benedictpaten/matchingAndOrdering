@@ -425,7 +425,7 @@ static void connectedNodes_addNode(connectedNodes *cN, int64_t n) {
     refEdge e = refAdjListIt_getNext(&it);
     while (refEdge_to(&e) != INT64_MAX) {
         if (!reference_inGraph(cN->ref, refEdge_to(&e))) {
-            e = refEdge_construct(llabs(refEdge_to(&e)), refEdge_weight(&e));
+            e = refEdge_construct(refEdge_to(&e), refEdge_weight(&e));
             refEdge *e2 = stSortedSet_search(cN->byNode, &e);
             if (e2 == NULL) {
                 e2 = refEdge_copy(&e);
@@ -433,7 +433,7 @@ static void connectedNodes_addNode(connectedNodes *cN, int64_t n) {
             } else {
                 assert(stSortedSet_search(cN->byWeight, e2) == e2);
                 stSortedSet_remove(cN->byWeight, e2);
-                e2->weight += refEdge_weight(e2);
+                e2->weight = refEdge_weight(&e) > e2->weight ? refEdge_weight(&e) : e2->weight; //+= refEdge_weight(&e);
             }
             stSortedSet_insert(cN->byWeight, e2);
         }
@@ -455,6 +455,7 @@ static connectedNodes *connectedNodes_construct(refAdjList *aL, reference *ref) 
         int64_t n = reference_getFirstOfInterval(ref, i);
         while (n != INT64_MAX) {
             connectedNodes_addNode(cN, n);
+            connectedNodes_addNode(cN, -n);
             n = reference_getNext(ref, n);
         }
     }
@@ -477,6 +478,7 @@ static int64_t connectedNodes_pop(connectedNodes *cN) {
     refEdge *e = stSortedSet_getLast(cN->byWeight);
     assert(refEdge_weight(e) >= refEdge_weight(stSortedSet_getFirst(cN->byWeight)));
     stSortedSet_remove(cN->byWeight, e);
+    assert(stSortedSet_size(cN->byWeight) == 0 || refEdge_weight(e) >= refEdge_weight(stSortedSet_getLast(cN->byWeight)));
     assert(stSortedSet_search(cN->byNode, e) == e);
     stSortedSet_remove(cN->byNode, e);
     int64_t n = refEdge_to(e);

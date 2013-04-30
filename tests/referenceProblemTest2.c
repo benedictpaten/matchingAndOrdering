@@ -173,6 +173,7 @@ static void testReferenceRandom(CuTest *testCase) {
 }
 
 static void testMakeReferenceGreedily(CuTest *testCase) {
+    double maxScore = 0, achievedScore = 0;
     for (int64_t i = 0; i < 100; i++) {
         setup();
         time_t startTime = time(NULL);
@@ -203,8 +204,11 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
         CuAssertTrue(testCase, nudgeScore >= topologicalReorderedScore);
         CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= topologicalBadAdjacencyCount);
         reference_log(ref);
+        maxScore += refAdjList_getMaxPossibleScore(aL);
+        achievedScore += nudgeScore;
         teardown();
     }
+    st_logInfo("Got %f of possible %f score\n", achievedScore, maxScore);
 }
 
 static void fn(double theta, int64_t node1, int64_t node2, int64_t adjacencyLength, int64_t node1Length, int64_t node2Length,
