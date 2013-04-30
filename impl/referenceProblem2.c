@@ -14,7 +14,7 @@
  * Adjacency list structure/edge structure
  */
 
-refEdge refEdge_construct(int64_t to, float weight) {
+refEdge refEdge_construct(int64_t to, double weight) {
     refEdge e;
     e.to = to;
     e.weight = weight;
@@ -25,7 +25,7 @@ int64_t refEdge_to(refEdge *e) {
     return e->to;
 }
 
-float refEdge_weight(refEdge *e) {
+double refEdge_weight(refEdge *e) {
     return e->weight;
 }
 
@@ -89,21 +89,21 @@ static int64_t convertN(refAdjList *aL, int64_t n) {
     return i;
 }
 
-float refAdjList_getWeight(refAdjList *aL, int64_t n1, int64_t n2) {
+double refAdjList_getWeight(refAdjList *aL, int64_t n1, int64_t n2) {
     checkN(n2, aL->nodeNumber);
     stIntTuple *i = stIntTuple_construct1( n2);
-    float *weight = stHash_search(aL->edgeHashes[convertN(aL, n1)], i);
+    double *weight = stHash_search(aL->edgeHashes[convertN(aL, n1)], i);
     stIntTuple_destruct(i);
     return weight == NULL ? 0.0 : weight[0];
 }
 
-static void refAdjList_setWeightP(refAdjList *aL, int64_t n1, int64_t n2, float weight, bool addToWeight) {
+static void refAdjList_setWeightP(refAdjList *aL, int64_t n1, int64_t n2, double weight, bool addToWeight) {
     stHash *edges = aL->edgeHashes[convertN(aL, n1)];
     checkN(n2, aL->nodeNumber);
     stIntTuple *i = stIntTuple_construct1( n2);
-    float *w = stHash_search(edges, i);
+    double *w = stHash_search(edges, i);
     if (w == NULL) {
-        w = st_malloc(sizeof(float));
+        w = st_malloc(sizeof(double));
         stHash_insert(edges, i, w);
         w[0] = weight;
     } else {
@@ -112,12 +112,12 @@ static void refAdjList_setWeightP(refAdjList *aL, int64_t n1, int64_t n2, float 
     }
 }
 
-void refAdjList_setWeight(refAdjList *aL, int64_t n1, int64_t n2, float weight) {
+void refAdjList_setWeight(refAdjList *aL, int64_t n1, int64_t n2, double weight) {
     refAdjList_setWeightP(aL, n1, n2, weight, 0);
     refAdjList_setWeightP(aL, n2, n1, weight, 0);
 }
 
-void refAdjList_addToWeight(refAdjList *aL, int64_t n1, int64_t n2, float weight) {
+void refAdjList_addToWeight(refAdjList *aL, int64_t n1, int64_t n2, double weight) {
     refAdjList_setWeightP(aL, n1, n2, weight, 1);
     refAdjList_setWeightP(aL, n2, n1, weight, 1);
 }
@@ -137,7 +137,7 @@ refEdge refAdjListIt_getNext(refAdjListIt *it) {
         e.weight = INT64_MAX;
     } else {
         e.to = stIntTuple_get(i, 0);
-        e.weight = *(float *) stHash_search(it->hash, i);
+        e.weight = *(double *) stHash_search(it->hash, i);
     }
     return e;
 }
@@ -189,10 +189,10 @@ struct _insertPoint {
     int64_t node;
     int64_t adjNode;
     bool previous;
-    float score;
+    double score;
 };
 
-static insertPoint *insertPoint_construct(int64_t node, int64_t adjNode, bool previous, float score) {
+static insertPoint *insertPoint_construct(int64_t node, int64_t adjNode, bool previous, double score) {
     insertPoint *iP = st_malloc(sizeof(insertPoint));
     iP->node = node;
     iP->adjNode = adjNode;
@@ -209,11 +209,11 @@ static int64_t insertPoint_adjNode(insertPoint *iP) {
     return iP->adjNode;
 }
 
-static float insertPoint_score(insertPoint *iP) {
+static double insertPoint_score(insertPoint *iP) {
     return iP->score;
 }
 
-static float insertPoint_previous(insertPoint *iP) {
+static double insertPoint_previous(insertPoint *iP) {
     return iP->previous;
 }
 
@@ -424,8 +424,8 @@ static void connectedNodes_addNode(connectedNodes *cN, int64_t n) {
     refAdjListIt it = adjList_getEdgeIt(cN->aL, n);
     refEdge e = refAdjListIt_getNext(&it);
     while (refEdge_to(&e) != INT64_MAX) {
-        if (!reference_inGraph(cN->ref, refEdge_to(&e))) {
-            e = refEdge_construct(refEdge_to(&e), refEdge_weight(&e));
+        if (!reference_inGraph(cN->ref, llabs(refEdge_to(&e)))) {
+            e = refEdge_construct(llabs(refEdge_to(&e)), refEdge_weight(&e));
             refEdge *e2 = stSortedSet_search(cN->byNode, &e);
             if (e2 == NULL) {
                 e2 = refEdge_copy(&e);

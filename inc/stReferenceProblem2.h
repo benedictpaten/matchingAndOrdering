@@ -20,7 +20,7 @@ typedef struct _reference reference;
 
 struct _refEdge {
     int64_t to;
-    float weight;
+    double weight;
 };
 
 struct _refAdjListIt {
@@ -33,11 +33,11 @@ struct _refAdjListIt {
  */
 //Negative value indicates the 3' end of segment, positive value indicates 5 prime end.
 
-refEdge refEdge_construct(int64_t to, float weight);
+refEdge refEdge_construct(int64_t to, double weight);
 
 int64_t refEdge_to(refEdge *e);
 
-float refEdge_weight(refEdge *e);
+double refEdge_weight(refEdge *e);
 
 refAdjList *refAdjList_construct(int64_t nodeNumber);
 
@@ -45,11 +45,11 @@ void refAdjList_destruct(refAdjList *aL);
 
 int64_t refAdjList_getNodeNumber(refAdjList *aL);
 
-float refAdjList_getWeight(refAdjList *aL, int64_t n1, int64_t n2);
+double refAdjList_getWeight(refAdjList *aL, int64_t n1, int64_t n2);
 
-void refAdjList_setWeight(refAdjList *aL, int64_t n1, int64_t n2, float weight);
+void refAdjList_setWeight(refAdjList *aL, int64_t n1, int64_t n2, double weight);
 
-void refAdjList_addToWeight(refAdjList *aL, int64_t n1, int64_t n2, float weight);
+void refAdjList_addToWeight(refAdjList *aL, int64_t n1, int64_t n2, double weight);
 
 refAdjListIt adjList_getEdgeIt(refAdjList *aL, int64_t node);
 
