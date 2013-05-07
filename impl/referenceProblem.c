@@ -396,14 +396,14 @@ void logReference(stList *reference, int64_t nodeNumber, float *zMatrix, double 
     }
 }
 
-double calculateZScore(int64_t n, int64_t m, int64_t k, double theta) {
+long double calculateZScore(int64_t n, int64_t m, int64_t k, long double theta) {
     assert(theta <= 1.0);
     assert(theta >= 0.0);
     if (theta == 0.0) {
-        return ((double) n) * m;
+        return ((long double) n) * ((long double) m);
     }
-    double beta = 1.0 - theta;
-    return ((1.0 - pow(beta, n)) / theta) * pow(beta, k) * ((1.0 - pow(beta, m)) / theta);
+    long double beta = 1.0 - theta;
+    return ((1.0 - pow(beta, (long double)n)) / theta) * pow(beta, (long double)k) * ((1.0 - pow(beta, (long double)m)) / theta);
 }
 
 double exponentiallyDecreasingTemperatureFn(double d) {

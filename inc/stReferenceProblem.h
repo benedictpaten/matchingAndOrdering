@@ -31,6 +31,6 @@ void logZScoreOfReference(stList *reference, int64_t nodeNumber, float *zMatrix)
 
 double calculateMaxZ(int64_t nodeNumber, float *zMatrix);
 
-double calculateZScore(int64_t n, int64_t m, int64_t k, double theta);
+long double calculateZScore(int64_t n, int64_t m, int64_t k, long double theta);
 
 #endif /* REFERENCEPROBLEM_H_ */
