@@ -109,12 +109,12 @@ static void testAdjList(CuTest *testCase) {
                 CuAssertDblEquals(testCase, refAdjList_getWeight(aL, n1, n2), w, 0.0);
             }
         }
-        double totalWeight = 0.0;
+        long double totalWeight = 0.0;
         for (int64_t n1 = -nodeNumber; n1 <= nodeNumber; n1++) {
             if (n1 != 0) {
                 for (int64_t n2 = n1; n2 <= nodeNumber; n2++) {
                     if (n2 != 0) {
-                        float w = st_random();
+                        double w = st_random();
                         refAdjList_setWeight(aL, n1, n2, w);
                         totalWeight += w;
                     }
@@ -173,33 +173,33 @@ static void testReferenceRandom(CuTest *testCase) {
 }
 
 static void testMakeReferenceGreedily(CuTest *testCase) {
-    double maxScore = 0, achievedScore = 0;
+    long double maxScore = 0, achievedScore = 0;
     for (int64_t i = 0; i < 100; i++) {
         setup();
         time_t startTime = time(NULL);
-        makeReferenceGreedily2(aL, ref);
+        makeReferenceGreedily2(aL, ref, 0.99);
         int64_t badAdjacencyCount = getBadAdjacencyCount(dAL, ref);
-        st_logInfo("Greedy it took %" PRIi64 " seconds, score: %f of possible: %f, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
+        st_logInfo("Greedy it took %" PRIi64 " seconds, score: %Lf of possible: %Lf, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
                 getReferenceScore(aL, ref), refAdjList_getMaxPossibleScore(aL), badAdjacencyCount);
         checkIsValidReference(testCase);
         updateReferenceGreedily(aL, ref, 10);
-        double greedyPermutationScore = getReferenceScore(aL, ref);
+        long double greedyPermutationScore = getReferenceScore(aL, ref);
         int64_t badAdjacencyCountGreedyPermutations = getBadAdjacencyCount(dAL, ref);
-        st_logInfo("Greedy with update permutations, it took %" PRIi64 " seconds, score: %f of possible: %f, bad adjacency count: %" PRIi64 "\n",
+        st_logInfo("Greedy with update permutations, it took %" PRIi64 " seconds, score: %Lf of possible: %Lf, bad adjacency count: %" PRIi64 "\n",
                 time(NULL) - startTime, greedyPermutationScore, refAdjList_getMaxPossibleScore(aL), badAdjacencyCountGreedyPermutations);
         checkIsValidReference(testCase);
         reorderReferenceToAvoidBreakpoints(aL, ref);
-        double topologicalReorderedScore = getReferenceScore(aL, ref);
+        long double topologicalReorderedScore = getReferenceScore(aL, ref);
         checkIsValidReference(testCase);
         int64_t topologicalBadAdjacencyCount = getBadAdjacencyCount(dAL, ref);
-        st_logInfo("Reordered score, it took %" PRIi64 " seconds, score: %f of possible: %f, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
+        st_logInfo("Reordered score, it took %" PRIi64 " seconds, score: %Lf of possible: %Lf, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
                 topologicalReorderedScore, refAdjList_getMaxPossibleScore(aL), topologicalBadAdjacencyCount);
         CuAssertTrue(testCase, topologicalReorderedScore >= greedyPermutationScore);
         //CuAssertTrue(testCase, getBadAdjacencyCount(dAL, ref) <= badAdjacencyCountGreedyPermutations);
         nudgeGreedily(dAL, aL, ref, 10, 100);
-        double nudgeScore = getReferenceScore(aL, ref);
+        long double nudgeScore = getReferenceScore(aL, ref);
         checkIsValidReference(testCase);
-        st_logInfo("Nudge score, it took %" PRIi64 " seconds, score: %f of possible: %f, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
+        st_logInfo("Nudge score, it took %" PRIi64 " seconds, score: %Lf of possible: %Lf, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
                 nudgeScore, refAdjList_getMaxPossibleScore(aL), getBadAdjacencyCount(dAL, ref));
         CuAssertTrue(testCase, nudgeScore >= topologicalReorderedScore);
         CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= topologicalBadAdjacencyCount);
@@ -208,7 +208,7 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
         achievedScore += nudgeScore;
         teardown();
     }
-    st_logInfo("Got %f of possible %f score\n", achievedScore, maxScore);
+    st_logInfo("Got %Lf of possible %Lf score\n", achievedScore, maxScore);
 }
 
 static void fn(double theta, int64_t node1, int64_t node2, int64_t adjacencyLength, int64_t node1Length, int64_t node2Length,
@@ -260,7 +260,7 @@ static void testADBDCExample(CuTest *testCase) {
     fn(theta, _3D, _5B, adjacencyLength, DL, BL, n);
     fn(theta, _3D, _3B, adjacencyLength, DL, BL, n);
 
-    makeReferenceGreedily2(aL, ref);
+    makeReferenceGreedily2(aL, ref, 0.99);
     updateReferenceGreedily(aL, ref, 100);
     st_logInfo("Running reference example problem, score: %f of possible: %f\n", getReferenceScore(aL, ref),
             refAdjList_getMaxPossibleScore(aL));

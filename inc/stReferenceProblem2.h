@@ -57,7 +57,7 @@ refEdge refAdjListIt_getNext(refAdjListIt *it);
 
 void refAdjListIt_destruct(refAdjListIt *it);
 
-double refAdjList_getMaxPossibleScore(refAdjList *aL);
+long double refAdjList_getMaxPossibleScore(refAdjList *aL);
 
 //double calculateZScore(int64_t n, int64_t m, int64_t k, double theta);
 
@@ -101,7 +101,7 @@ void reference_log(reference *ref);
  * Reference algorithms
  */
 
-void makeReferenceGreedily2(refAdjList *aL, reference *ref);
+void makeReferenceGreedily2(refAdjList *aL, reference *ref, double wiggle);
 
 void updateReferenceGreedily(refAdjList *aL, reference *ref, int64_t permutations);
 
@@ -110,7 +110,7 @@ void updateReferenceGreedily(refAdjList *aL, reference *ref, int64_t permutation
  */
 void reorderReferenceToAvoidBreakpoints(refAdjList *aL, reference *ref);
 
-double getReferenceScore(refAdjList *aL, reference *ref);
+long double getReferenceScore(refAdjList *aL, reference *ref);
 
 /*
  * Nudge the blocks to try to eliminate "bad adjacencies", where to blocks are adjacent but do not have a direct weight between them.

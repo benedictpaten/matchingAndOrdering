@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
      * Compute the ordering
      */
 
-    makeReferenceGreedily2(aL, ref);
+    makeReferenceGreedily2(aL, ref, 0.99);
     updateReferenceGreedily(aL, ref, permutationNumber);
 
     /*
