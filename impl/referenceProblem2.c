@@ -187,15 +187,18 @@ struct _insertPoint {
     int64_t node;
     int64_t adjNode;
     bool previous;
-    double score;
+    long double score;
+    int64_t equivalentInsertPoints;
 };
 
-static insertPoint *insertPoint_construct(int64_t node, int64_t adjNode, bool previous, double score) {
+static insertPoint *insertPoint_construct(int64_t node, int64_t adjNode, bool previous, long double score,
+        int64_t equivalentInsertPoints) {
     insertPoint *iP = st_malloc(sizeof(insertPoint));
     iP->node = node;
     iP->adjNode = adjNode;
     iP->score = score;
     iP->previous = previous;
+    iP->equivalentInsertPoints = equivalentInsertPoints;
     return iP;
 }
 
@@ -207,7 +210,7 @@ static int64_t insertPoint_adjNode(insertPoint *iP) {
     return iP->adjNode;
 }
 
-static double insertPoint_score(insertPoint *iP) {
+static long double insertPoint_score(insertPoint *iP) {
     return iP->score;
 }
 
@@ -319,7 +322,8 @@ void reference_insertNode(reference *ref, int64_t pNode, int64_t node) {
 }
 
 static void reference_insertNode2(reference *ref, insertPoint *iP) {
-    reference_insertNode(ref, insertPoint_previous(iP) ? insertPoint_adjNode(iP) : reference_getPrevious(ref, insertPoint_adjNode(iP)),
+    reference_insertNode(ref,
+            insertPoint_previous(iP) ? insertPoint_adjNode(iP) : reference_getPrevious(ref, insertPoint_adjNode(iP)),
             insertPoint_node(iP));
 }
 
@@ -387,6 +391,19 @@ int reference_cmp(reference *ref, int64_t n1, int64_t n2) {
     return rT1->index > rT2->index ? 1 : rT1->index < rT2->index ? -1 : 0;
 }
 
+int64_t reference_gapBetweenNodes(reference *ref, int64_t m, int64_t n) {
+    int64_t gap = 0;
+    assert(m != INT64_MAX);
+    assert(n != INT64_MAX);
+    assert(llabs(m) != llabs(n));
+    while (llabs(m) != llabs(n)) {
+        gap++;
+        m = reference_getNext(ref, m);
+        assert(m != INT64_MAX);
+    }
+    return gap;
+}
+
 void reference_log(reference *ref) {
     st_logInfo("Logging reference with %" PRIi64 " intervals\n", reference_getIntervalNumber(ref));
     for (int64_t i = 0; i < reference_getIntervalNumber(ref); i++) {
@@ -422,8 +439,9 @@ static stList *getRelevantEdges(refAdjList *aL, reference *ref, int64_t n) {
     return edges;
 }
 
-static void getInsertPointsPrevious(int64_t n, stList *edges, reference *ref, stList *insertPoints) {
-    double f = 0.0;
+static stList *getInsertPointsPrevious(int64_t n, stList *edges, reference *ref) {
+    stList *insertPoints = stList_construct();
+    long double f = 0.0;
     int64_t intervalName = INT64_MAX;
     for (int64_t i = 0; i < stList_length(edges); i++) {
         refEdge *e = stList_get(edges, i);
@@ -433,13 +451,16 @@ static void getInsertPointsPrevious(int64_t n, stList *edges, reference *ref, st
         }
         if (!reference_getOrientation(ref, refEdge_to(e)) && reference_getNext(ref, refEdge_to(e)) != INT64_MAX) {
             f += refEdge_weight(e);
-            stList_append(insertPoints, insertPoint_construct(n, refEdge_to(e), 1, f));
+            stList_append(insertPoints, insertPoint_construct(n, refEdge_to(e), 1, f, INT64_MAX));
         }
     }
+    stList_sort2(insertPoints, (int(*)(const void *, const void *, const void *))insertPoint_cmp, ref);
+    return insertPoints;
 }
 
-static void getInsertPointsNext(int64_t n, stList *edges, reference *ref, stList *insertPoints) {
-    double f = 0.0;
+static stList *getInsertPointsNext(int64_t n, stList *edges, reference *ref) {
+    stList *insertPoints = stList_construct();
+    long double f = 0.0;
     int64_t intervalName = INT64_MAX;
     for (int64_t i = stList_length(edges) - 1; i >= 0; i--) {
         refEdge *e = stList_get(edges, i);
@@ -449,32 +470,59 @@ static void getInsertPointsNext(int64_t n, stList *edges, reference *ref, stList
         }
         if (reference_getOrientation(ref, refEdge_to(e)) && reference_getPrevious(ref, refEdge_to(e)) != INT64_MAX) {
             f += refEdge_weight(e);
-            stList_append(insertPoints, insertPoint_construct(n, refEdge_to(e), 0, f));
+            stList_append(insertPoints, insertPoint_construct(n, refEdge_to(e), 0, f, INT64_MAX));
         }
     }
+    stList_sort2(insertPoints, (int(*)(const void *, const void *, const void *))insertPoint_cmp, ref);
+    return insertPoints;
 }
 
-static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdges, reference *ref, refAdjList *aL, stList *insertPoints) {
-    stList *insertPoints2 = stList_construct();
-    getInsertPointsPrevious(n, previousEdges, ref, insertPoints2);
-    getInsertPointsNext(n, nextEdges, ref, insertPoints2);
-    stList_sort2(insertPoints2, (int(*)(const void *, const void *, const void *)) insertPoint_cmp, ref);
-    for (int64_t i = 1; i < stList_length(insertPoints2); i++) {
-        insertPoint *iPP = stList_get(insertPoints2, i - 1);
-        insertPoint *iPN = stList_get(insertPoints2, i);
-        if (reference_getFirst(ref, insertPoint_adjNode(iPP)) == reference_getFirst(ref, insertPoint_adjNode(iPN)) && insertPoint_previous(
-                iPP) && !insertPoint_previous(iPN)) {
-            if (refAdjList_getWeight(aL, n, insertPoint_adjNode(iPP)) > refAdjList_getWeight(aL, -n, insertPoint_adjNode(iPN))) {
-                stList_append(insertPoints,
-                        insertPoint_construct(n, insertPoint_adjNode(iPP), 1, insertPoint_score(iPP) + insertPoint_score(iPN)));
-            } else {
-                stList_append(insertPoints,
-                        insertPoint_construct(n, insertPoint_adjNode(iPN), 0, insertPoint_score(iPP) + insertPoint_score(iPN)));
+static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdges, reference *ref, refAdjList *aL,
+        stList *insertPoints) {
+    stList *previousInsertPoints = getInsertPointsPrevious(n, previousEdges, ref);
+    stList_appendAll(insertPoints, previousInsertPoints);
+    stList *nextInsertPoints = getInsertPointsNext(n, nextEdges, ref);
+    stList_appendAll(insertPoints, nextInsertPoints);
+    stListIterator *previousInsertPointsIterator = stList_getIterator(previousInsertPoints);
+    stListIterator *nextInsertPointsIterator = stList_getIterator(nextInsertPoints);
+    insertPoint *iPP = stList_getNext(previousInsertPointsIterator);
+    insertPoint *iPN = stList_getNext(nextInsertPointsIterator);
+    while (iPP != NULL && iPN != NULL) {
+        int64_t i = reference_cmp(ref, insertPoint_adjNode(iPP), insertPoint_adjNode(iPN));
+        if (i < 0) {
+            while(1) {
+                insertPoint *iPPN = stList_getNext(previousInsertPointsIterator);
+                if(iPPN != NULL && reference_cmp(ref, insertPoint_adjNode(iPPN), insertPoint_adjNode(iPN)) < 0) {
+                    iPP = iPPN;
+                    continue;
+                }
+                if (reference_getFirst(ref, insertPoint_adjNode(iPP)) == reference_getFirst(ref, insertPoint_adjNode(iPN))) {
+                    int64_t gap = reference_gapBetweenNodes(ref, insertPoint_adjNode(iPP), insertPoint_adjNode(iPN));
+                    if (refAdjList_getWeight(aL, n, insertPoint_adjNode(iPP)) > refAdjList_getWeight(aL, -n,
+                            insertPoint_adjNode(iPN))) {
+                        stList_append(
+                                insertPoints,
+                                insertPoint_construct(n, insertPoint_adjNode(iPP), 1,
+                                        insertPoint_score(iPP) + insertPoint_score(iPN), gap));
+                    } else {
+                        stList_append(
+                                insertPoints,
+                                insertPoint_construct(n, insertPoint_adjNode(iPN), 0,
+                                        insertPoint_score(iPP) + insertPoint_score(iPN), gap));
+                    }
+                }
+                iPP = iPPN;
+                iPN = stList_getNext(nextInsertPointsIterator);
+                break;
             }
+        } else {
+            iPN = stList_getNext(nextInsertPointsIterator);
         }
     }
-    stList_appendAll(insertPoints, insertPoints2);
-    stList_destruct(insertPoints2);
+    stList_destructIterator(previousInsertPointsIterator);
+    stList_destructIterator(nextInsertPointsIterator);
+    stList_destruct(previousInsertPoints);
+    stList_destruct(nextInsertPoints);
 }
 
 static insertPoint *getABestInsertNode(int64_t n, refAdjList *aL, reference *ref) {
@@ -490,12 +538,19 @@ static insertPoint *getABestInsertNode(int64_t n, refAdjList *aL, reference *ref
     //Get best insertion point
     for (int64_t i = 0; i < stList_length(insertPoints); i++) {
         insertPoint *iP = stList_get(insertPoints, i);
-        if (bestIP == NULL || insertPoint_score(iP) > insertPoint_score(bestIP)) {
+        if (bestIP == NULL || insertPoint_score(iP) > insertPoint_score(bestIP) || (insertPoint_score(iP)
+                == insertPoint_score(bestIP) && iP->equivalentInsertPoints <= bestIP->equivalentInsertPoints)) {
             bestIP = iP;
         }
     }
     if (bestIP != NULL) { //Clone it so we can clean everything else up.
-        bestIP = insertPoint_construct(bestIP->node, bestIP->adjNode, bestIP->previous, bestIP->score);
+        bestIP = insertPoint_construct(bestIP->node, bestIP->adjNode, bestIP->previous, bestIP->score,
+                bestIP->equivalentInsertPoints);
+        if (bestIP->equivalentInsertPoints == INT64_MAX) {
+            bestIP->equivalentInsertPoints = bestIP->previous ? reference_gapBetweenNodes(ref, bestIP->adjNode,
+                    reference_getLast(ref, bestIP->adjNode)) : reference_gapBetweenNodes(ref,
+                    reference_getFirst(ref, bestIP->adjNode), bestIP->adjNode);
+        }
     }
     //Cleanup
     stList_destruct(previousEdges);
@@ -540,14 +595,14 @@ typedef struct _connectedNodes connectedNodes;
 static ConnectedNodeEdge *connectedNodeEdge_construct(refEdge *e, connectedNodes *cN) {
     ConnectedNodeEdge *cNE = st_calloc(1, sizeof(ConnectedNodeEdge));
     cNE->rE = *e;
-    cNE->maxWeight = refAdjList_getWeightOfIncidentEdges(cN->aL, refEdge_to(e)) + refAdjList_getWeightOfIncidentEdges(cN->aL,
-            -refEdge_to(e));
+    cNE->maxWeight = refAdjList_getWeightOfIncidentEdges(cN->aL, refEdge_to(e)) + refAdjList_getWeightOfIncidentEdges(
+            cN->aL, -refEdge_to(e));
     return cNE;
 }
 
 static long double connectedNodeEdge_calculateWeight(ConnectedNodeEdge *cNE) {
-    assert(cNE->inconsistentAdjacencyWeight/cNE->weightOfEdgesInGraph <= 1.0001);
-    assert(cNE->weightOfEdgesInGraph/cNE->maxWeight <= 1.0001);
+    assert(cNE->inconsistentAdjacencyWeight / cNE->weightOfEdgesInGraph <= 1.0001);
+    assert(cNE->weightOfEdgesInGraph / cNE->maxWeight <= 1.0001);
     long double i = (cNE->weightOfEdgesInGraph - cNE->inconsistentAdjacencyWeight) / cNE->maxWeight;
     return i;
 }
@@ -615,17 +670,17 @@ static bool connectedNodes_empty(connectedNodes *cN) {
 
 static insertPoint *connectedNodes_popBestInsert(connectedNodes *cN, refAdjList *aL, reference *ref, double wiggle) {
     assert(wiggle <= 1.0);
-    int64_t i=0;
-    while(1) {
+    int64_t i = 0;
+    while (1) {
         ConnectedNodeEdge *cNE = stSortedSet_getLast(cN->byWeight);
         stSortedSet_remove(cN->byWeight, cNE);
         insertPoint *iP = getABestInsertNode(refEdge_to((refEdge *) cNE), aL, ref);
         assert(iP != NULL);
         cNE->inconsistentAdjacencyWeight = cNE->weightOfEdgesInGraph - insertPoint_score(iP);
-        assert(insertPoint_score(iP)/cNE->weightOfEdgesInGraph <= 1.0001);
-        ((refEdge *) cNE)->weight = connectedNodeEdge_calculateWeight(cNE);
-        if(stSortedSet_size(cN->byWeight) == 0 ||
-           refEdge_weight(stSortedSet_getLast(cN->byWeight)) * wiggle <= refEdge_weight((refEdge *) cNE) || i++ >= stSortedSet_size(cN->byWeight)) {
+        assert(insertPoint_score(iP) / cNE->weightOfEdgesInGraph <= 1.0001);
+        ((refEdge *) cNE)->weight = connectedNodeEdge_calculateWeight(cNE) / iP->equivalentInsertPoints; //Division through by the equivalent insert points number means we try to avoid making totally arbitrary ordering decisions about the partial order.
+        if (stSortedSet_size(cN->byWeight) == 0 || refEdge_weight(stSortedSet_getLast(cN->byWeight)) * wiggle
+                <= refEdge_weight((refEdge *) cNE) || i++ >= stSortedSet_size(cN->byWeight)) {
             stSortedSet_remove(cN->byNode, cNE);
             return iP;
         }
@@ -650,8 +705,7 @@ void makeReferenceGreedily2(refAdjList *aL, reference *ref, double wiggle) {
         connectedNodes_addNode(cN, -insertPoint_node(iP));
         free(iP);
         i++;
-    }
-    st_logDebug("We added %" PRIi64 " connected nodes to the reference of %" PRIi64 " nodes\n", i, refAdjList_getNodeNumber(aL));
+    }st_logDebug("We added %" PRIi64 " connected nodes to the reference of %" PRIi64 " nodes\n", i, refAdjList_getNodeNumber(aL));
     //Iterate over the nodes to check any nodes that are not in the reference
     for (int64_t n = 1; n <= refAdjList_getNodeNumber(aL); n++) {
         insertNode(n, aL, ref);
@@ -742,8 +796,8 @@ static long double getSumOfConsistentAdjacenciesScore(int64_t n, refAdjList *aL,
     refAdjListIt it = adjList_getEdgeIt(aL, n);
     refEdge e = refAdjListIt_getNext(&it);
     while (refEdge_to(&e) != INT64_MAX) {
-        if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref, refEdge_to(&e))
-                && !reference_getOrientation(ref, n) && reference_getOrientation(ref, refEdge_to(&e))) {
+        if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref,
+                refEdge_to(&e)) && !reference_getOrientation(ref, n) && reference_getOrientation(ref, refEdge_to(&e))) {
             score += refEdge_weight(&e);
         }
         e = refAdjListIt_getNext(&it);
@@ -785,8 +839,8 @@ static stList *getValidEdges(int64_t n, refAdjList *aL, reference *ref) {
     refAdjListIt it = adjList_getEdgeIt(aL, n);
     refEdge e = refAdjListIt_getNext(&it);
     while (refEdge_to(&e) != INT64_MAX) {
-        if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref, refEdge_to(&e))
-                && reference_getOrientation(ref, refEdge_to(&e))) {
+        if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref,
+                refEdge_to(&e)) && reference_getOrientation(ref, refEdge_to(&e))) {
             //Is a valid edge
             stList_append(validEdges, refEdge_copy(&e));
         }
@@ -796,7 +850,8 @@ static stList *getValidEdges(int64_t n, refAdjList *aL, reference *ref) {
     return validEdges;
 }
 
-static bool visitP(int64_t n, stSortedSet *visited, stSortedSet *visiting, refAdjList *aL, reference *ref, stList *ordering, stList *stack) {
+static bool visitP(int64_t n, stSortedSet *visited, stSortedSet *visiting, refAdjList *aL, reference *ref,
+        stList *ordering, stList *stack) {
     assert(reference_inGraph(ref, n));
     stIntTuple *i = stIntTuple_construct1(n);
     if (stSortedSet_search(visited, i) == NULL) {
@@ -815,7 +870,8 @@ static bool visitP(int64_t n, stSortedSet *visited, stSortedSet *visiting, refAd
     }
 }
 
-static void visit(int64_t n, stSortedSet *visited, stSortedSet *visiting, refAdjList *aL, reference *ref, stList *ordering, stList *stack) {
+static void visit(int64_t n, stSortedSet *visited, stSortedSet *visiting, refAdjList *aL, reference *ref,
+        stList *ordering, stList *stack) {
     /*
      * Do DFS of nodes using edges that are consistent with the graph.
      */
