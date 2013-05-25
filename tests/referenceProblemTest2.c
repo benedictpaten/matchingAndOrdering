@@ -172,6 +172,37 @@ static void testReferenceRandom(CuTest *testCase) {
     }
 }
 
+int64_t testBreakupReferenceRandom_TooLong = 0;
+static bool intervalIsTooLong(reference *ref, int64_t n) {
+    return reference_getRemainingIntervalLength(ref, n) > testBreakupReferenceRandom_TooLong;
+}
+
+static void testBreakupReferenceRandom(CuTest *testCase) {
+    for (int64_t i = 0; i < testNumber; i++) {
+        setup();
+        time_t startTime = time(NULL);
+        for (int64_t n = 2 * intervalNumber + 1; n <= nodeNumber; n++) {
+            reference_insertNode(ref, n - 1 > 2 * intervalNumber ? n - 1 : 1, n);
+        }
+        st_logInfo("Random it took %" PRIi64 " seconds, score: %f of possible: %f\n", time(NULL) - startTime, getReferenceScore(aL, ref),
+                refAdjList_getMaxPossibleScore(aL));
+        st_logInfo("The reference for the %" PRIi64 " th test\n", i);
+        reference_log(ref);
+        checkIsValidReference(testCase);
+        testBreakupReferenceRandom_TooLong = st_randomInt(2, 5);
+        reorderToAvoidOverlargeChromosome(ref, intervalIsTooLong);
+        checkIsValidReference(testCase);
+        /*for(int64_t i=0; i<reference_getIntervalNumber(ref); i++) {
+            int64_t n = reference_getFirstOfInterval(ref, n);
+            if(reference_getRemainingIntervalLength(ref, n) > testBreakupReferenceRandom_TooLong) {
+                reference_get
+            }
+            CuAssertTrue(testCase, reference_getRemainingIntervalLength(ref, n) <= testBreakupReferenceRandom_TooLong);
+        }*/
+        teardown();
+    }
+}
+
 static void testMakeReferenceGreedily(CuTest *testCase) {
     long double maxScore = 0, achievedScore = 0;
     for (int64_t i = 0; i < 100; i++) {
@@ -203,6 +234,9 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
                 nudgeScore, refAdjList_getMaxPossibleScore(aL), getBadAdjacencyCount(dAL, ref));
         CuAssertTrue(testCase, nudgeScore >= topologicalReorderedScore);
         CuAssertTrue(testCase, getBadAdjacencyCount(aL, ref) <= topologicalBadAdjacencyCount);
+        testBreakupReferenceRandom_TooLong = st_randomInt(2, 5);
+        reorderToAvoidOverlargeChromosome(ref,  intervalIsTooLong);
+        checkIsValidReference(testCase);
         reference_log(ref);
         maxScore += refAdjList_getMaxPossibleScore(aL);
         achievedScore += nudgeScore;
@@ -273,6 +307,7 @@ CuSuite* referenceProblem2TestSuite(void) {
     SUITE_ADD_TEST(suite, testAdjList);
     SUITE_ADD_TEST(suite, testReference);
     SUITE_ADD_TEST(suite, testReferenceRandom);
+    SUITE_ADD_TEST(suite, testBreakupReferenceRandom);
     SUITE_ADD_TEST(suite, testMakeReferenceGreedily);
     SUITE_ADD_TEST(suite, testADBDCExample);
     return suite;

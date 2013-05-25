@@ -404,6 +404,15 @@ int64_t reference_gapBetweenNodes(reference *ref, int64_t m, int64_t n) {
     return gap;
 }
 
+int64_t reference_getRemainingIntervalLength(reference *ref, int64_t n) {
+    int64_t j=0;
+    while(n != INT64_MAX) {
+        j++;
+        n = reference_getNext(ref, n);
+    }
+    return j;
+}
+
 void reference_log(reference *ref) {
     st_logInfo("Logging reference with %" PRIi64 " intervals\n", reference_getIntervalNumber(ref));
     for (int64_t i = 0; i < reference_getIntervalNumber(ref); i++) {
@@ -696,20 +705,25 @@ static insertPoint *connectedNodes_popBestInsert(connectedNodes *cN, refAdjList 
 void makeReferenceGreedily2(refAdjList *aL, reference *ref, double wiggle) {
     assert(reference_getIntervalNumber(ref) > 0 || refAdjList_getNodeNumber(aL) == 0);
     connectedNodes *cN = connectedNodes_construct(aL, ref);
-    int64_t i = 0;
-    while (!connectedNodes_empty(cN)) {
-        insertPoint *iP = connectedNodes_popBestInsert(cN, aL, ref, wiggle);
-        assert(iP != NULL);
-        reference_insertNode2(ref, iP);
-        connectedNodes_addNode(cN, insertPoint_node(iP));
-        connectedNodes_addNode(cN, -insertPoint_node(iP));
-        free(iP);
-        i++;
-    }st_logDebug("We added %" PRIi64 " connected nodes to the reference of %" PRIi64 " nodes\n", i, refAdjList_getNodeNumber(aL));
     //Iterate over the nodes to check any nodes that are not in the reference
+    int64_t i = 0;
     for (int64_t n = 1; n <= refAdjList_getNodeNumber(aL); n++) {
-        insertNode(n, aL, ref);
+        while (!connectedNodes_empty(cN)) {
+            insertPoint *iP = connectedNodes_popBestInsert(cN, aL, ref, wiggle);
+            assert(iP != NULL);
+            reference_insertNode2(ref, iP);
+            connectedNodes_addNode(cN, insertPoint_node(iP));
+            connectedNodes_addNode(cN, -insertPoint_node(iP));
+            free(iP);
+        }
+        if(!reference_inGraph(ref, n)) {
+            i++;
+            insertNode(n, aL, ref);
+            connectedNodes_addNode(cN, n);
+            connectedNodes_addNode(cN, -n);
+        }
     }
+    st_logDebug("We added %" PRIi64 " unconnected nodes to the reference of %" PRIi64 " nodes\n", i, refAdjList_getNodeNumber(aL));
     connectedNodes_destruct(cN);
 }
 
@@ -945,5 +959,49 @@ static void reorderReferenceIntervalToAvoidBreakpoints(int64_t startNode, refAdj
 void reorderReferenceToAvoidBreakpoints(refAdjList *aL, reference *ref) {
     for (int64_t i = 0; i < reference_getIntervalNumber(ref); i++) {
         reorderReferenceIntervalToAvoidBreakpoints(reference_getFirstOfInterval(ref, i), aL, ref);
+    }
+}
+
+void translocateInterval(reference *ref, int64_t n, int64_t length, int64_t pNode) {
+    assert(pNode != INT64_MAX);
+    assert(n != INT64_MAX);
+    int64_t i=0;
+    while(i++<length) {
+        int64_t m = reference_getNext(ref, n);
+        assert(m != INT64_MAX);
+        reference_removeNode(ref, n);
+        reference_insertNode(ref, pNode, n);
+        pNode = n;
+        n = m;
+    }
+}
+
+int64_t getShortestInterval(reference *ref) {
+    int64_t shortestInterval = INT64_MAX;
+    int64_t shortestIntervalLength = INT64_MAX;
+    for(int64_t i=0; i<reference_getIntervalNumber(ref); i++) {
+        int64_t n = reference_getFirstOfInterval(ref, i);
+        int64_t length = reference_getRemainingIntervalLength(ref, n);
+        if(length == 0) {
+            return n;
+        }
+        if(length < shortestIntervalLength) {
+            shortestInterval = n;
+            shortestIntervalLength = length;
+        }
+    }
+    return shortestInterval;
+}
+
+void reorderToAvoidOverlargeChromosome(reference *ref, bool (*tooLarge)(reference *, int64_t n)) {
+    for(int64_t i=0; i<reference_getIntervalNumber(ref); i++) {
+        int64_t n = reference_getFirstOfInterval(ref, i);
+        int64_t length = reference_getRemainingIntervalLength(ref, n);
+        if(tooLarge(ref, n) && length > 2) {
+            int64_t m = getShortestInterval(ref);
+            if(m != n) {
+                translocateInterval(ref, reference_getNext(ref, n), length/2, m);
+            }
+        }
     }
 }

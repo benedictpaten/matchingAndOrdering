@@ -92,6 +92,8 @@ bool reference_getOrientation(reference *ref, int64_t n);
 //Gets the next position within the reference.
 int64_t reference_getNext(reference *ref, int64_t n);
 
+int64_t reference_getRemainingIntervalLength(reference *ref, int64_t n);
+
 //Compares segments position within a reference, ignoring orientation.
 int reference_cmp(reference *ref, int64_t n1, int64_t n2);
 
@@ -121,5 +123,10 @@ void nudgeGreedily(refAdjList *dAL, refAdjList *aL, reference *ref, int64_t perm
  * Count of adjacent nodes in reference that have no edge connecting them.
  */
 int64_t getBadAdjacencyCount(refAdjList *aL, reference *ref);
+
+/*
+ * Breaks up chromosomes.
+ */
+void reorderToAvoidOverlargeChromosome(reference *ref, bool (*tooLarge)(reference *, int64_t n));
 
 #endif /* REFERENCEPROBLEM2_H_ */
