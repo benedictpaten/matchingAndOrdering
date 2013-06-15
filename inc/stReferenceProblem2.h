@@ -59,6 +59,8 @@ void refAdjListIt_destruct(refAdjListIt *it);
 
 long double refAdjList_getMaxPossibleScore(refAdjList *aL);
 
+int64_t refAdjList_getNumberOfWeights(refAdjList *aL);
+
 //double calculateZScore(int64_t n, int64_t m, int64_t k, double theta);
 
 /*

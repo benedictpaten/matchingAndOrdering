@@ -167,6 +167,26 @@ long double refAdjList_getMaxPossibleScore(refAdjList *aL) {
     return score / 2.0;
 }
 
+int64_t refAdjList_getNumberOfIncidentEdges(refAdjList *aL, int64_t n) {
+    int64_t numberOfWeights = 0;
+    refAdjListIt it = adjList_getEdgeIt(aL, n);
+    refEdge e = refAdjListIt_getNext(&it);
+    while (refEdge_to(&e) != INT64_MAX) {
+        numberOfWeights++;
+    }
+    refAdjListIt_destruct(&it);
+    return numberOfWeights;
+}
+
+int64_t refAdjList_getNumberOfWeights(refAdjList *aL) {
+    int64_t weights = 0;
+    for (int64_t n = 1; n <= refAdjList_getNodeNumber(aL); n++) {
+        weights += refAdjList_getNumberOfIncidentEdges(aL, n);
+        weights += refAdjList_getNumberOfIncidentEdges(aL, -n);
+    }
+    return weights / 2.0;
+}
+
 /*double calculateZScore(int64_t n, int64_t m, int64_t k, double theta) {
  assert(theta <= 1.0);
  assert(theta >= 0.0);
