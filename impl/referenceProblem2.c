@@ -173,6 +173,7 @@ int64_t refAdjList_getNumberOfIncidentEdges(refAdjList *aL, int64_t n) {
     refEdge e = refAdjListIt_getNext(&it);
     while (refEdge_to(&e) != INT64_MAX) {
         numberOfWeights++;
+        e = refAdjListIt_getNext(&it);
     }
     refAdjListIt_destruct(&it);
     return numberOfWeights;
