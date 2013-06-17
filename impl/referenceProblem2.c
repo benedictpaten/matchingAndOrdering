@@ -261,14 +261,6 @@ struct _reference {
     stList *referenceIntervals;
 };
 
-static uint64_t referenceTermHashKey(const void *refTerm) {
-    return llabs(((referenceTerm *) refTerm)->node);
-}
-
-static int referenceTermEqualsFn(const void *refTerm1, const void *refTerm2) {
-    return llabs(((referenceTerm *) refTerm1)->node) == llabs(((referenceTerm *) refTerm2)->node);
-}
-
 reference *reference_construct(int64_t nodeNumber) {
     reference *ref = st_malloc(sizeof(reference));
     ref->nodeNumber = nodeNumber;
