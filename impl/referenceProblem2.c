@@ -520,18 +520,18 @@ static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdg
                     continue;
                 }
                 if (reference_getFirst(ref, insertPoint_adjNode(iPP)) == reference_getFirst(ref, insertPoint_adjNode(iPN))) {
-                    bool gap = llabs(reference_getNext(ref, insertPoint_adjNode(iPP))) == llabs(insertPoint_adjNode(iPN)) ? 0 : 1; //I dont think the absolute values are necessary
+                    bool equivalentInsertPoints = llabs(reference_getNext(ref, insertPoint_adjNode(iPP))) == llabs(insertPoint_adjNode(iPN)) ? 0 : 1; //I don't think the absolute values are necessary
                     if (refAdjList_getWeight(aL, n, insertPoint_adjNode(iPP)) > refAdjList_getWeight(aL, -n,
                             insertPoint_adjNode(iPN))) {
                         stList_append(
                                 insertPoints,
                                 insertPoint_construct(n, insertPoint_adjNode(iPP), 1,
-                                        insertPoint_score(iPP) + insertPoint_score(iPN), gap));
+                                        insertPoint_score(iPP) + insertPoint_score(iPN), equivalentInsertPoints));
                     } else {
                         stList_append(
                                 insertPoints,
                                 insertPoint_construct(n, insertPoint_adjNode(iPN), 0,
-                                        insertPoint_score(iPP) + insertPoint_score(iPN), gap));
+                                        insertPoint_score(iPP) + insertPoint_score(iPN), equivalentInsertPoints));
                     }
                 }
                 iPP = iPPN;
@@ -698,7 +698,7 @@ static insertPoint *connectedNodes_popBestInsert(connectedNodes *cN, refAdjList 
         assert(iP != NULL);
         cNE->inconsistentAdjacencyWeight = cNE->weightOfEdgesInGraph - insertPoint_score(iP);
         assert(insertPoint_score(iP) / cNE->weightOfEdgesInGraph <= 1.0001);
-        ((refEdge *) cNE)->weight = connectedNodeEdge_calculateWeight(cNE) / (iP->equivalentInsertPoints ? 2 : 1); //Division through by the equivalent insert points number means we try to avoid making totally arbitrary ordering decisions about the partial order.
+        ((refEdge *) cNE)->weight = connectedNodeEdge_calculateWeight(cNE); // / (iP->equivalentInsertPoints ? 2 : 1); //Division through by the equivalent insert points number means we try to avoid making totally arbitrary ordering decisions about the partial order.
         if (stSortedSet_size(cN->byWeight) == 0 || refEdge_weight(stSortedSet_getLast(cN->byWeight)) * wiggle
                 <= refEdge_weight((refEdge *) cNE) || i++ >= stSortedSet_size(cN->byWeight)) {
             stSortedSet_remove(cN->byNode, cNE);
