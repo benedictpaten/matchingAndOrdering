@@ -421,6 +421,9 @@ int64_t reference_gapBetweenNodes(reference *ref, int64_t m, int64_t n) {
         gap++;
         m = reference_getNext(ref, m);
         assert(m != INT64_MAX);
+        if(gap > 10) {
+            return gap;
+        }
     }
     return gap;
 }
@@ -577,9 +580,9 @@ static insertPoint *getABestInsertNode(int64_t n, refAdjList *aL, reference *ref
         bestIP = insertPoint_construct(bestIP->node, bestIP->adjNode, bestIP->previous, bestIP->score,
                 bestIP->equivalentInsertPoints);
         if (bestIP->equivalentInsertPoints == INT64_MAX) {
-            bestIP->equivalentInsertPoints = bestIP->previous ? reference_gapBetweenNodes(ref, bestIP->adjNode,
-                    reference_getLast(ref, bestIP->adjNode)) : reference_gapBetweenNodes(ref,
-                    reference_getFirst(ref, bestIP->adjNode), bestIP->adjNode);
+            bestIP->equivalentInsertPoints = 100; //bestIP->previous ? reference_gapBetweenNodes(ref, bestIP->adjNode,
+                    //reference_getLast(ref, bestIP->adjNode)) : reference_gapBetweenNodes(ref,
+                    //reference_getFirst(ref, bestIP->adjNode), bestIP->adjNode);
         }
     }
     //Cleanup
