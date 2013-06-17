@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     assert(i == 1);
     assert(stubNumber >= 0 && stubNumber % 2 == 0);
     assert(nodeNumber >= stubNumber && nodeNumber % 2 == 0);
-    reference *ref = reference_construct();
+    reference *ref = reference_construct(nodeNumber / 2 + stubNumber/2);
     for(int64_t j=1; j<=stubNumber; j+=2) {
         reference_makeNewInterval(ref, j, j+1);
     }

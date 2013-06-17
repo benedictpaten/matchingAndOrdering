@@ -47,7 +47,7 @@ static void setup() {
 
     aL = refAdjList_construct(nodeNumber);
     dAL = refAdjList_construct(nodeNumber);
-    ref = reference_construct();
+    ref = reference_construct(nodeNumber);
     for (int64_t i = 0; i < intervalNumber; i++) {
         reference_makeNewInterval(ref, 2 * i + 1, 2 * i + 2);
     }
@@ -243,7 +243,7 @@ static void testADBDCExample(CuTest *testCase) {
     int64_t DL = 2;
     nodeNumber = 4;
     aL = refAdjList_construct(nodeNumber);
-    ref = reference_construct();
+    ref = reference_construct(nodeNumber);
 
     int64_t adjacencyLength = 1;
     int64_t n = 100;

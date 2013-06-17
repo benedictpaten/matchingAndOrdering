@@ -67,7 +67,7 @@ int64_t refAdjList_getNumberOfWeights(refAdjList *aL);
  * Reference structure
  */
 
-reference *reference_construct();
+reference *reference_construct(int64_t nodeNumber);
 
 void reference_destruct(reference *ref);
 

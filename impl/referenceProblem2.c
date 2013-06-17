@@ -256,7 +256,8 @@ struct _referenceTerm {
 };
 
 struct _reference {
-    stHash *nodesInGraph;
+    int64_t nodeNumber;
+    referenceTerm **nodesInGraph;
     stList *referenceIntervals;
 };
 
@@ -268,17 +269,34 @@ static int referenceTermEqualsFn(const void *refTerm1, const void *refTerm2) {
     return llabs(((referenceTerm *) refTerm1)->node) == llabs(((referenceTerm *) refTerm2)->node);
 }
 
-reference *reference_construct() {
+reference *reference_construct(int64_t nodeNumber) {
     reference *ref = st_malloc(sizeof(reference));
-    ref->nodesInGraph = stHash_construct3(referenceTermHashKey, referenceTermEqualsFn, free, NULL);
+    ref->nodeNumber = nodeNumber;
+    ref->nodesInGraph = st_calloc(nodeNumber, sizeof(referenceTerm *));
     ref->referenceIntervals = stList_construct();
     return ref;
 }
 
 void reference_destruct(reference *ref) {
-    stHash_destruct(ref->nodesInGraph);
+    for(int64_t i=0; i<ref->nodeNumber; i++) {
+        if(ref->nodesInGraph[i] != NULL) {
+            free(ref->nodesInGraph[i]);
+        }
+    }
+    free(ref->nodesInGraph);
     stList_destruct(ref->referenceIntervals);
     free(ref);
+}
+
+static referenceTerm *reference_getTerm(reference *ref, int64_t n) {
+    assert(llabs(n) <= ref->nodeNumber);
+    assert(llabs(n)-1 >= 0);
+    return ref->nodesInGraph[llabs(n)-1]; 
+}
+
+void reference_insertNodeP(reference *ref, referenceTerm *rT) {
+    assert(reference_getTerm(ref, rT->node) == NULL);
+    ref->nodesInGraph[llabs(rT->node)-1] = rT;
 }
 
 void reference_makeNewInterval(reference *ref, int64_t firstNode, int64_t lastNode) {
@@ -293,15 +311,9 @@ void reference_makeNewInterval(reference *ref, int64_t firstNode, int64_t lastNo
     rTL->first = rTF;
     rTF->index = 0;
     rTL->index = INT64_MAX; //This forces the rebalancing code to be exercised.
-    stHash_insert(ref->nodesInGraph, rTF, rTF);
-    stHash_insert(ref->nodesInGraph, rTL, rTL);
+    reference_insertNodeP(ref, rTF);
+    reference_insertNodeP(ref, rTL);
     stList_append(ref->referenceIntervals, rTF);
-}
-
-static referenceTerm *reference_getTerm(reference *ref, int64_t n) {
-    referenceTerm rT;
-    rT.node = n;
-    return stHash_search(ref->nodesInGraph, &rT);
 }
 
 void reference_insertNode(reference *ref, int64_t pNode, int64_t node) {
@@ -315,7 +327,7 @@ void reference_insertNode(reference *ref, int64_t pNode, int64_t node) {
     rTP->nTerm = rT;
     rT->nTerm->pTerm = rT;
     rT->first = rTP->first;
-    stHash_insert(ref->nodesInGraph, rT, rT);
+    reference_insertNodeP(ref, rT);
     //Deal with indices
     assert(rT->nTerm->index - rTP->index >= 1);
     if (rT->nTerm->index - rTP->index == 1) { //Need to rebalance
@@ -354,7 +366,7 @@ static void reference_removeNode(reference *ref, int64_t n) {
     if (rT->pTerm == NULL || rT->nTerm == NULL) {
         return;
     }
-    stHash_remove(ref->nodesInGraph, rT);
+    ref->nodesInGraph[llabs(n)-1] = NULL;
     rT->nTerm->pTerm = rT->pTerm;
     rT->pTerm->nTerm = rT->nTerm;
     free(rT);
