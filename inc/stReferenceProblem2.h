@@ -108,9 +108,9 @@ void reference_log(reference *ref);
  * Reference algorithms
  */
 
-void makeReferenceGreedily2(refAdjList *aL, reference *ref, double wiggle);
+void makeReferenceGreedily2(refAdjList *aL, refAdjList *dAL, reference *ref, double wiggle);
 
-void updateReferenceGreedily(refAdjList *aL, reference *ref, int64_t permutations);
+void updateReferenceGreedily(refAdjList *aL, refAdjList *dAL, reference *ref, int64_t permutations);
 
 /*
  * Create a topological sort of each reference interval, trying to place nodes that are connected by direct adjacencies next to one another.

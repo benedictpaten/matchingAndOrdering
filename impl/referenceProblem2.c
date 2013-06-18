@@ -511,7 +511,7 @@ static stList *getInsertPointsNext(int64_t n, stList *edges, reference *ref) {
     return insertPoints;
 }
 
-static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdges, reference *ref, refAdjList *aL,
+static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdges, reference *ref, refAdjList *aL, refAdjList *dAL,
         stList *insertPoints) {
     stList *previousInsertPoints = getInsertPointsPrevious(n, previousEdges, ref);
     stList_appendAll(insertPoints, previousInsertPoints);
@@ -532,8 +532,24 @@ static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdg
                 }
                 if (reference_getFirst(ref, insertPoint_adjNode(iPP)) == reference_getFirst(ref, insertPoint_adjNode(iPN))) {
                     bool equivalentInsertPoints = llabs(reference_getNext(ref, insertPoint_adjNode(iPP))) == llabs(insertPoint_adjNode(iPN)) ? 0 : 1; //I don't think the absolute values are necessary
-                    if (refAdjList_getWeight(aL, n, insertPoint_adjNode(iPP)) > refAdjList_getWeight(aL, -n,
-                            insertPoint_adjNode(iPN))) {
+                    double nWL = refAdjList_getWeight(aL, insertPoint_adjNode(iPP), n); //new weight left
+                    double nWR =  refAdjList_getWeight(aL, -n, insertPoint_adjNode(iPN)); //new weight right
+                    assert(nWL > 0);
+                    assert(nWR > 0);
+                    bool left = nWL > nWR;
+                    if(equivalentInsertPoints) {
+                        assert(reference_getNext(ref, insertPoint_adjNode(iPP)) != INT64_MAX);
+                        assert(reference_getPrevious(ref, insertPoint_adjNode(iPN)) != INT64_MAX);
+                        double eWL = refAdjList_getWeight(dAL, insertPoint_adjNode(iPP), reference_getNext(ref, insertPoint_adjNode(iPP))); //existing weight left
+                        double eWR = refAdjList_getWeight(dAL, -reference_getPrevious(ref, insertPoint_adjNode(iPN)), insertPoint_adjNode(iPN)); //existing weight right
+                        if(eWL == 0) {
+                            left = eWR > 0 || nWL > nWR;
+                        }
+                        else {
+                            left = !(nWR == 0 || nWR > nWL);
+                        }
+                    }
+                    if (left) {
                         stList_append(
                                 insertPoints,
                                 insertPoint_construct(n, insertPoint_adjNode(iPP), 1,
@@ -559,7 +575,7 @@ static void getInsertionPoints(int64_t n, stList *previousEdges, stList *nextEdg
     stList_destruct(nextInsertPoints);
 }
 
-static insertPoint *getABestInsertNode(int64_t n, refAdjList *aL, reference *ref) {
+static insertPoint *getABestInsertNode(int64_t n, refAdjList *aL, refAdjList *dAL, reference *ref) {
     assert(!reference_inGraph(ref, n));
     insertPoint *bestIP = NULL;
     //Get list of edges to nodes already in the reference
@@ -567,8 +583,8 @@ static insertPoint *getABestInsertNode(int64_t n, refAdjList *aL, reference *ref
     stList *nextEdges = getRelevantEdges(aL, ref, -n);
     //Now do the hardwork of determining the best insertion point
     stList *insertPoints = stList_construct3(0, free);
-    getInsertionPoints(n, previousEdges, nextEdges, ref, aL, insertPoints);
-    getInsertionPoints(-n, nextEdges, previousEdges, ref, aL, insertPoints);
+    getInsertionPoints(n, previousEdges, nextEdges, ref, aL, dAL, insertPoints);
+    getInsertionPoints(-n, nextEdges, previousEdges, ref, aL, dAL, insertPoints);
     //Get best insertion point
     for (int64_t i = 0; i < stList_length(insertPoints); i++) {
         insertPoint *iP = stList_get(insertPoints, i);
@@ -588,9 +604,9 @@ static insertPoint *getABestInsertNode(int64_t n, refAdjList *aL, reference *ref
     return bestIP;
 }
 
-static void insertNode(int64_t n, refAdjList *aL, reference *ref) {
+static void insertNode(int64_t n, refAdjList *aL, refAdjList *dAL, reference *ref) {
     if (!reference_inGraph(ref, n)) { //Have a node to add
-        insertPoint *bestIP = getABestInsertNode(n, aL, ref);
+        insertPoint *bestIP = getABestInsertNode(n, aL, dAL, ref);
         if (bestIP == NULL) { //Make up a location
             st_logDebug("Got a node with no edges linking it into the graph\n");
             reference_insertNode(ref, reference_getFirstOfInterval(ref, 0), n);
@@ -699,13 +715,13 @@ static bool connectedNodes_empty(connectedNodes *cN) {
     return stSortedSet_size(cN->byNode) == 0;
 }
 
-static insertPoint *connectedNodes_popBestInsert(connectedNodes *cN, refAdjList *aL, reference *ref, double wiggle) {
+static insertPoint *connectedNodes_popBestInsert(connectedNodes *cN, refAdjList *aL, refAdjList *dAL, reference *ref, double wiggle) {
     assert(wiggle <= 1.0);
     int64_t i = 0;
     while (1) {
         ConnectedNodeEdge *cNE = stSortedSet_getLast(cN->byWeight);
         stSortedSet_remove(cN->byWeight, cNE);
-        insertPoint *iP = getABestInsertNode(refEdge_to((refEdge *) cNE), aL, ref);
+        insertPoint *iP = getABestInsertNode(refEdge_to((refEdge *) cNE), aL, dAL, ref);
         assert(iP != NULL);
         cNE->inconsistentAdjacencyWeight = cNE->weightOfEdgesInGraph - insertPoint_score(iP);
         assert(insertPoint_score(iP) / cNE->weightOfEdgesInGraph <= 1.0001);
@@ -725,14 +741,14 @@ static insertPoint *connectedNodes_popBestInsert(connectedNodes *cN, refAdjList 
  * Actual algorithms to make the reference.
  */
 
-void makeReferenceGreedily2(refAdjList *aL, reference *ref, double wiggle) {
+void makeReferenceGreedily2(refAdjList *aL, refAdjList *dAL, reference *ref, double wiggle) {
     assert(reference_getIntervalNumber(ref) > 0 || refAdjList_getNodeNumber(aL) == 0);
     connectedNodes *cN = connectedNodes_construct(aL, ref);
     //Iterate over the nodes to check any nodes that are not in the reference
     int64_t i = 0;
     for (int64_t n = 1; n <= refAdjList_getNodeNumber(aL); n++) {
         while (!connectedNodes_empty(cN)) {
-            insertPoint *iP = connectedNodes_popBestInsert(cN, aL, ref, wiggle);
+            insertPoint *iP = connectedNodes_popBestInsert(cN, aL, dAL, ref, wiggle);
             assert(iP != NULL);
             reference_insertNode2(ref, iP);
             connectedNodes_addNode(cN, insertPoint_node(iP));
@@ -741,7 +757,7 @@ void makeReferenceGreedily2(refAdjList *aL, reference *ref, double wiggle) {
         }
         if(!reference_inGraph(ref, n)) {
             i++;
-            insertNode(n, aL, ref);
+            insertNode(n, aL, dAL, ref);
             connectedNodes_addNode(cN, n);
             connectedNodes_addNode(cN, -n);
         }
@@ -751,14 +767,14 @@ void makeReferenceGreedily2(refAdjList *aL, reference *ref, double wiggle) {
     connectedNodes_destruct(cN);
 }
 
-void updateReferenceGreedily(refAdjList *aL, reference *ref, int64_t permutations) {
+void updateReferenceGreedily(refAdjList *aL, refAdjList *dAL, reference *ref, int64_t permutations) {
     for (int64_t i = 0; i < permutations; i++) {
         for (int64_t j = 1; j <= refAdjList_getNodeNumber(aL); j++) {
             int64_t n = st_randomInt(1, refAdjList_getNodeNumber(aL) + 1);
             assert(reference_inGraph(ref, n));
             reference_removeNode(ref, n);
             if (!reference_inGraph(ref, n)) {
-                insertNode(n, aL, ref);
+                insertNode(n, aL, dAL, ref);
                 assert(reference_inGraph(ref, n));
             }
         }

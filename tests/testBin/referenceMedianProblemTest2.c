@@ -86,8 +86,8 @@ int main(int argc, char *argv[]) {
      * Compute the ordering
      */
 
-    makeReferenceGreedily2(aL, ref, 0.99);
-    updateReferenceGreedily(aL, ref, permutationNumber);
+    makeReferenceGreedily2(aL, aL, ref, 0.99);
+    updateReferenceGreedily(aL, aL, ref, permutationNumber);
 
     /*
      * Print out the median genome,

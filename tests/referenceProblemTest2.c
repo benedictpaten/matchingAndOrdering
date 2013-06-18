@@ -182,12 +182,12 @@ static void testMakeReferenceGreedily(CuTest *testCase) {
     for (int64_t i = 0; i < 100; i++) {
         setup();
         time_t startTime = time(NULL);
-        makeReferenceGreedily2(aL, ref, 0.99);
+        makeReferenceGreedily2(aL, dAL, ref, 0.99);
         int64_t badAdjacencyCount = getBadAdjacencyCount(dAL, ref);
         st_logInfo("Greedy it took %" PRIi64 " seconds, score: %Lf of possible: %Lf, bad adjacency count: %" PRIi64 "\n", time(NULL) - startTime,
                 getReferenceScore(aL, ref), refAdjList_getMaxPossibleScore(aL), badAdjacencyCount);
         checkIsValidReference(testCase);
-        updateReferenceGreedily(aL, ref, 10);
+        updateReferenceGreedily(aL, dAL, ref, 10);
         long double greedyPermutationScore = getReferenceScore(aL, ref);
         int64_t badAdjacencyCountGreedyPermutations = getBadAdjacencyCount(dAL, ref);
         st_logInfo("Greedy with update permutations, it took %" PRIi64 " seconds, score: %Lf of possible: %Lf, bad adjacency count: %" PRIi64 "\n",
@@ -268,8 +268,8 @@ static void testADBDCExample(CuTest *testCase) {
     fn(theta, _3D, _5B, adjacencyLength, DL, BL, n);
     fn(theta, _3D, _3B, adjacencyLength, DL, BL, n);
 
-    makeReferenceGreedily2(aL, ref, 0.99);
-    updateReferenceGreedily(aL, ref, 100);
+    makeReferenceGreedily2(aL, aL, ref, 0.99);
+    updateReferenceGreedily(aL, aL, ref, 100);
     st_logInfo("Running reference example problem, score: %f of possible: %f\n", getReferenceScore(aL, ref),
             refAdjList_getMaxPossibleScore(aL));
     reference_log(ref);
