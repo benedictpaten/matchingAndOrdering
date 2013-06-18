@@ -406,6 +406,17 @@ int64_t reference_getLast(reference *ref, int64_t n) {
     return n;
 }
 
+bool reference_isConsistent(reference *ref, int64_t m, int64_t n) {
+    if(reference_getFirst(ref, m) == reference_getFirst(ref,
+            n)) {
+        if(!reference_getOrientation(ref, m)) {
+            return reference_getOrientation(ref, n) && reference_cmp(ref, m, n) == -1;
+        }
+        return !reference_getOrientation(ref, n) && reference_cmp(ref, n, m) == -1;
+    }
+    return 0;
+}
+
 int reference_cmp(reference *ref, int64_t n1, int64_t n2) {
     referenceTerm *rT1 = reference_getTerm(ref, n1), *rT2 = reference_getTerm(ref, n2);
     assert(rT1 != NULL);
@@ -866,8 +877,9 @@ static stList *getValidEdges(int64_t n, refAdjList *aL, reference *ref) {
     refAdjListIt it = adjList_getEdgeIt(aL, n);
     refEdge e = refAdjListIt_getNext(&it);
     while (refEdge_to(&e) != INT64_MAX) {
-        if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref,
-                refEdge_to(&e)) && reference_getOrientation(ref, refEdge_to(&e))) {
+        if(reference_isConsistent(ref, n, refEdge_to(&e))) {
+        //if (reference_cmp(ref, n, refEdge_to(&e)) == -1 && reference_getFirst(ref, n) == reference_getFirst(ref,
+        //        refEdge_to(&e)) && reference_getOrientation(ref, refEdge_to(&e))) {
             //Is a valid edge
             stList_append(validEdges, refEdge_copy(&e));
         }

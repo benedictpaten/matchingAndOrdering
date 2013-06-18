@@ -91,6 +91,9 @@ int64_t reference_getLast(reference *ref, int64_t n);
 //Returns nonzero if segment is in reference in same orientation, traversing the reference sequence(s) from 5' to 3'.
 bool reference_getOrientation(reference *ref, int64_t n);
 
+//Returns true if the edge (m ,n) is consistent with the reference, where m and n are sides.
+bool reference_isConsistent(reference *ref, int64_t m, int64_t n);
+
 //Gets the next position within the reference.
 int64_t reference_getNext(reference *ref, int64_t n);
 
