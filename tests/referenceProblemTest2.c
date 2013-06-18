@@ -179,7 +179,7 @@ static bool intervalIsTooLong(reference *ref, int64_t n) {
 
 static void testMakeReferenceGreedily(CuTest *testCase) {
     long double maxScore = 0, achievedScore = 0;
-    for (int64_t i = 0; i < 100; i++) {
+    for (int64_t i = 0; i < testNumber; i++) {
         setup();
         time_t startTime = time(NULL);
         makeReferenceGreedily2(aL, dAL, ref, 0.99);

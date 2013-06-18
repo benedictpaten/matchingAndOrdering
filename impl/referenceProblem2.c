@@ -647,7 +647,7 @@ static ConnectedNodeEdge *connectedNodeEdge_construct(refEdge *e, connectedNodes
 }
 
 static long double connectedNodeEdge_calculateWeight(ConnectedNodeEdge *cNE) {
-    assert(cNE->inconsistentAdjacencyWeight / cNE->weightOfEdgesInGraph <= 1.0001);
+    assert(cNE->inconsistentAdjacencyWeight / cNE->weightOfEdgesInGraph <= 1.001);
     assert(cNE->weightOfEdgesInGraph / cNE->maxWeight <= 1.0001);
     long double i = (cNE->weightOfEdgesInGraph - cNE->inconsistentAdjacencyWeight) / cNE->maxWeight;
     return i;
