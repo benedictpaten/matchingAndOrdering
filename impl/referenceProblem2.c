@@ -781,7 +781,7 @@ void updateReferenceGreedily(refAdjList *aL, refAdjList *dAL, reference *ref, in
     }
 }
 
-static void nudge(int64_t n, refAdjList *dAL, refAdjList *aL, reference *ref, int64_t maxNudge) {
+static bool nudge(int64_t n, refAdjList *dAL, refAdjList *aL, reference *ref, int64_t maxNudge) {
     //Setup the best insertion spot
     int64_t bestInsert = INT64_MAX;
     int64_t k = reference_getPrevious(ref, n);
@@ -828,19 +828,26 @@ static void nudge(int64_t n, refAdjList *dAL, refAdjList *aL, reference *ref, in
     if (bestInsert != INT64_MAX) {
         reference_removeNode(ref, n);
         reference_insertNode(ref, bestInsert, n);
+        return 1;
     }
+    return 0;
 }
 
 void nudgeGreedily(refAdjList *dAL, refAdjList *aL, reference *ref, int64_t permutations, int64_t maxNudge) {
     for (int64_t i = 0; i < permutations; i++) {
+        bool madeNudge = 0;
         for (int64_t j = 0; j < reference_getIntervalNumber(ref); j++) {
             int64_t n = reference_getNext(ref, reference_getFirstOfInterval(ref, j));
             assert(n != INT64_MAX);
             int64_t m;
             while ((m = reference_getNext(ref, n)) != INT64_MAX) {
-                nudge(n, dAL, aL, ref, maxNudge);
+                madeNudge = madeNudge || nudge(n, dAL, aL, ref, maxNudge);
                 n = m;
             }
+        }
+        if(!madeNudge) {
+            st_logDebug("Ran out of nudges after %i iterations\n", i);
+            break;
         }
     }
 }
