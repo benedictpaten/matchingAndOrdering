@@ -287,18 +287,21 @@ static referenceTerm *reference_getTerm(reference *ref, int64_t n) {
 }
 
 void reference_insertNodeP(reference *ref, referenceTerm *rT) {
-    while(llabs(rT->node) >= ref->nodeNumber) { //Expand array if necessary.
-        ref->nodesInGraph = st_realloc(ref->nodesInGraph, 2 * ref->nodeNumber * sizeof(referenceTerm *));
-        for(int64_t i=ref->nodeNumber; i<ref->nodeNumber*2; i++) {
+    while(llabs(rT->node) > ref->nodeNumber) { //Expand array if necessary.
+        int64_t newNodeNumber = 2 * ref->nodeNumber + 1;
+        ref->nodesInGraph = st_realloc(ref->nodesInGraph, newNodeNumber * sizeof(referenceTerm *));
+        for(int64_t i=ref->nodeNumber; i<newNodeNumber; i++) {
             ref->nodesInGraph[i] = NULL;
         }
-        ref->nodeNumber *= 2;
+        ref->nodeNumber = newNodeNumber;
     }
     assert(reference_getTerm(ref, rT->node) == NULL);
     ref->nodesInGraph[llabs(rT->node)-1] = rT;
 }
 
 void reference_makeNewInterval(reference *ref, int64_t firstNode, int64_t lastNode) {
+    assert(!reference_inGraph(ref, firstNode));
+    assert(!reference_inGraph(ref, lastNode));
     referenceTerm *rTF = st_malloc(sizeof(referenceTerm)), *rTL = st_malloc(sizeof(referenceTerm));
     rTF->node = firstNode;
     rTL->node = lastNode;
@@ -372,7 +375,7 @@ static void reference_removeNode(reference *ref, int64_t n) {
 }
 
 bool reference_inGraph(reference *ref, int64_t n) {
-    return reference_getTerm(ref, n) != NULL;
+    return llabs(n) <= ref->nodeNumber && reference_getTerm(ref, n) != NULL;
 }
 
 int64_t reference_getFirstOfInterval(reference *ref, int64_t interval) {
@@ -457,21 +460,32 @@ void reference_log(reference *ref) {
 }
 
 void reference_splitInterval(reference *ref, int64_t pNode, int64_t stub1, int64_t stub2) {
+    assert(reference_getNext(ref, pNode) != INT64_MAX);
+    assert(!reference_inGraph(ref, stub1));
+    assert(!reference_inGraph(ref, stub2));
+    assert(stub1 != stub2);
     reference_makeNewInterval(ref, stub2, stub1);
     referenceTerm *pNodeTerm = reference_getTerm(ref, pNode);
+    assert(pNodeTerm != NULL);
     referenceTerm *nNodeTerm = pNodeTerm->nTerm;
     assert(nNodeTerm != NULL); //Is not a stub end.
     referenceTerm *stub1Term = reference_getTerm(ref, stub1);
     referenceTerm *stub2Term = stub1Term->pTerm;
-    assert(stub2Term != NULL && stub2Term == refenrence_getTerm(ref, stub2));
+    assert(stub2Term != NULL && stub2Term == reference_getTerm(ref, stub2));
     assert(stub1Term->nTerm == NULL);
     assert(stub2Term->pTerm == NULL);
     pNodeTerm->nTerm = stub1Term;
     stub1Term->pTerm = pNodeTerm;
     stub2Term->nTerm = nNodeTerm;
     nNodeTerm->pTerm = stub2Term;
+    assert(stub1Term->first == stub2Term);
     stub1Term->first = pNodeTerm->first;
-    nNodeTerm->first = stub2Term;
+    assert(nNodeTerm->first == pNodeTerm->first);
+    do {
+        nNodeTerm->first = stub2Term;
+        nNodeTerm = nNodeTerm->nTerm;
+    } while(nNodeTerm != NULL);
+    assert(stub2Term->first == stub2Term);
 }
 
 /*

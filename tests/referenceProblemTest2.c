@@ -72,18 +72,22 @@ static void checkIsValidReference(CuTest *testCase) {
     }
     for (int64_t i = 0; i < intervalNumber; i++) {
         int64_t n = reference_getFirstOfInterval(ref, i);
-        CuAssertIntEquals(testCase, 2*i+1, n);
+        int64_t first = reference_getFirst(ref, n);
+        int64_t last = reference_getLast(ref, n);
+        //CuAssertIntEquals(testCase, 2*i+1, n);
         while (reference_getNext(ref, n) != INT64_MAX) {
             CuAssertTrue(testCase, n <= nodeNumber);
             CuAssertTrue(testCase, n >= -nodeNumber);
             CuAssertTrue(testCase, n != 0);
             CuAssertTrue(testCase, nodes[abs(n)-1] == 0);
+            CuAssertIntEquals(testCase, first, reference_getFirst(ref, n));
+            CuAssertIntEquals(testCase, last, reference_getLast(ref, n));
             nodes[abs(n) - 1] = 1;
             n = reference_getNext(ref, n);
         }
         CuAssertTrue(testCase, nodes[abs(n)-1] == 0);
         nodes[abs(n) - 1] = 1;
-        CuAssertIntEquals(testCase, 2*i+2, n);
+        //CuAssertIntEquals(testCase, 2*i+2, n);
     }
     for (int64_t i = 0; i < nodeNumber; i++) {
         CuAssertTrue(testCase, nodes[i] == 1);
@@ -180,6 +184,7 @@ static void testReference_splitInterval(CuTest *testCase) {
     for (int64_t i = 0; i < testNumber; i++) {
         setup();
         fillReference();
+        checkIsValidReference(testCase);
         if(reference_getIntervalNumber(ref) > 0) {
             while(st_random() > 0.1) {
                 int64_t n = reference_getFirstOfInterval(ref, st_randomInt(0, reference_getIntervalNumber(ref)));
@@ -190,24 +195,28 @@ static void testReference_splitInterval(CuTest *testCase) {
                 if(m != INT64_MAX) {
                     int64_t i = reference_getIntervalNumber(ref);
                     int64_t first = reference_getFirst(ref, m);
+                    assert(reference_getFirst(ref, m) == reference_getFirst(ref,n));
                     int64_t last = reference_getLast(ref, m);
-                    reference_splitInterval(ref, n, nodeNumber, nodeNumber+1);
+                    assert(reference_getLast(ref, m) == reference_getLast(ref,n));
+                    int64_t stub1 = nodeNumber+1, stub2 = nodeNumber+2;
+                    reference_splitInterval(ref, n, stub1, stub2);
                     CuAssertIntEquals(testCase, i+1, reference_getIntervalNumber(ref));
-                    CuAssertIntEquals(testCase, reference_getNext(ref, n), nodeNumber);
-                    CuAssertIntEquals(testCase, reference_getPrevious(ref, nodeNumber), n);
-                    CuAssertIntEquals(testCase, reference_getNext(ref, nodeNumber+1), m);
-                    CuAssertIntEquals(testCase, reference_getPrevious(ref, m), nodeNumber+1);
+                    CuAssertIntEquals(testCase, reference_getNext(ref, n), stub1);
+                    CuAssertIntEquals(testCase, reference_getPrevious(ref, stub1), n);
+                    CuAssertIntEquals(testCase, reference_getNext(ref, stub2), m);
+                    CuAssertIntEquals(testCase, reference_getPrevious(ref, m), stub2);
 
-                    CuAssertIntEquals(testCase, reference_getFirst(ref, nodeNumber),first);
+                    CuAssertIntEquals(testCase, reference_getFirst(ref, stub1),first);
                     CuAssertIntEquals(testCase, reference_getFirst(ref, n), first);
-                    CuAssertIntEquals(testCase, reference_getLast(ref, nodeNumber),nodeNumber);
-                    CuAssertIntEquals(testCase, reference_getLast(ref, n), nodeNumber);
+                    CuAssertIntEquals(testCase, reference_getLast(ref, stub1),stub1);
+                    CuAssertIntEquals(testCase, reference_getLast(ref, n), stub1);
 
-                    CuAssertIntEquals(testCase, reference_getFirst(ref, nodeNumber+1), nodeNumber+1);
-                    CuAssertIntEquals(testCase, reference_getFirst(ref, m), nodeNumber+1);
-                    CuAssertIntEquals(testCase, reference_getLast(ref, nodeNumber), last);
+                    CuAssertIntEquals(testCase, reference_getFirst(ref, stub2), stub2);
+                    CuAssertIntEquals(testCase, reference_getFirst(ref, m), stub2);
+                    CuAssertIntEquals(testCase, reference_getLast(ref, stub2), last);
                     CuAssertIntEquals(testCase, reference_getLast(ref, m), last);
                     nodeNumber += 2;
+                    intervalNumber++;
                     checkIsValidReference(testCase);
                 }
             }
