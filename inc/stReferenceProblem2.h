@@ -104,6 +104,9 @@ int reference_cmp(reference *ref, int64_t n1, int64_t n2);
 
 void reference_log(reference *ref);
 
+//Splits an interval into two, making the existing interval end with stub1, and the new interval (which will be last interval) start with stub2.
+void reference_splitInterval(reference *ref, int64_t pNode, int64_t stub1, int64_t stub2);
+
 /*
  * Reference algorithms
  */

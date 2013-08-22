@@ -47,7 +47,7 @@ static void setup() {
 
     aL = refAdjList_construct(nodeNumber);
     dAL = refAdjList_construct(nodeNumber);
-    ref = reference_construct(nodeNumber);
+    ref = reference_construct(0);
     for (int64_t i = 0; i < intervalNumber; i++) {
         reference_makeNewInterval(ref, 2 * i + 1, 2 * i + 2);
     }
@@ -156,13 +156,17 @@ static void testReference(CuTest *testCase) {
     }
 }
 
+static void fillReference() {
+    for (int64_t n = 2 * intervalNumber + 1; n <= nodeNumber; n++) {
+        reference_insertNode(ref, n - 1 > 2 * intervalNumber ? n - 1 : 1, n);
+    }
+}
+
 static void testReferenceRandom(CuTest *testCase) {
     for (int64_t i = 0; i < testNumber; i++) {
         setup();
         time_t startTime = time(NULL);
-        for (int64_t n = 2 * intervalNumber + 1; n <= nodeNumber; n++) {
-            reference_insertNode(ref, n - 1 > 2 * intervalNumber ? n - 1 : 1, n);
-        }
+        fillReference();
         st_logInfo("Random it took %" PRIi64 " seconds, score: %f of possible: %f\n", time(NULL) - startTime, getReferenceScore(aL, ref),
                 refAdjList_getMaxPossibleScore(aL));
         st_logInfo("The reference for the %" PRIi64 " th test\n", i);
@@ -171,6 +175,49 @@ static void testReferenceRandom(CuTest *testCase) {
         teardown();
     }
 }
+
+static void testReference_splitInterval(CuTest *testCase) {
+    for (int64_t i = 0; i < testNumber; i++) {
+        setup();
+        fillReference();
+        if(reference_getIntervalNumber(ref) > 0) {
+            while(st_random() > 0.1) {
+                int64_t n = reference_getFirstOfInterval(ref, st_randomInt(0, reference_getIntervalNumber(ref)));
+                while(reference_getNext(ref, n) != INT64_MAX && st_random() > 0.5) {
+                    n = reference_getNext(ref, n);
+                }
+                int64_t m = reference_getNext(ref, n);
+                if(m != INT64_MAX) {
+                    int64_t i = reference_getIntervalNumber(ref);
+                    int64_t first = reference_getFirst(ref, m);
+                    int64_t last = reference_getLast(ref, m);
+                    reference_splitInterval(ref, n, nodeNumber, nodeNumber+1);
+                    CuAssertIntEquals(testCase, i+1, reference_getIntervalNumber(ref));
+                    CuAssertIntEquals(testCase, reference_getNext(ref, n), nodeNumber);
+                    CuAssertIntEquals(testCase, reference_getPrevious(ref, nodeNumber), n);
+                    CuAssertIntEquals(testCase, reference_getNext(ref, nodeNumber+1), m);
+                    CuAssertIntEquals(testCase, reference_getPrevious(ref, m), nodeNumber+1);
+
+                    CuAssertIntEquals(testCase, reference_getFirst(ref, nodeNumber),first);
+                    CuAssertIntEquals(testCase, reference_getFirst(ref, n), first);
+                    CuAssertIntEquals(testCase, reference_getLast(ref, nodeNumber),nodeNumber);
+                    CuAssertIntEquals(testCase, reference_getLast(ref, n), nodeNumber);
+
+                    CuAssertIntEquals(testCase, reference_getFirst(ref, nodeNumber+1), nodeNumber+1);
+                    CuAssertIntEquals(testCase, reference_getFirst(ref, m), nodeNumber+1);
+                    CuAssertIntEquals(testCase, reference_getLast(ref, nodeNumber), last);
+                    CuAssertIntEquals(testCase, reference_getLast(ref, m), last);
+                    nodeNumber += 2;
+                    checkIsValidReference(testCase);
+                }
+            }
+        }
+        reference_log(ref);
+        checkIsValidReference(testCase);
+        teardown();
+    }
+}
+
 
 static int64_t tooLong = 0;
 static bool intervalIsTooLong(reference *ref, int64_t n) {
@@ -282,6 +329,7 @@ CuSuite* referenceProblem2TestSuite(void) {
     SUITE_ADD_TEST(suite, testReference);
     SUITE_ADD_TEST(suite, testReferenceRandom);
     SUITE_ADD_TEST(suite, testMakeReferenceGreedily);
+    SUITE_ADD_TEST(suite, testReference_splitInterval);
     SUITE_ADD_TEST(suite, testADBDCExample);
     return suite;
 }

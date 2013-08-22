@@ -261,10 +261,10 @@ struct _reference {
     stList *referenceIntervals;
 };
 
-reference *reference_construct(int64_t nodeNumber) {
+reference *reference_construct(int64_t estimatedNodeNumber) {
     reference *ref = st_malloc(sizeof(reference));
-    ref->nodeNumber = nodeNumber;
-    ref->nodesInGraph = st_calloc(nodeNumber, sizeof(referenceTerm *));
+    ref->nodeNumber = estimatedNodeNumber;
+    ref->nodesInGraph = st_calloc(estimatedNodeNumber, sizeof(referenceTerm *));
     ref->referenceIntervals = stList_construct();
     return ref;
 }
@@ -287,6 +287,13 @@ static referenceTerm *reference_getTerm(reference *ref, int64_t n) {
 }
 
 void reference_insertNodeP(reference *ref, referenceTerm *rT) {
+    while(llabs(rT->node) >= ref->nodeNumber) { //Expand array if necessary.
+        ref->nodesInGraph = st_realloc(ref->nodesInGraph, 2 * ref->nodeNumber * sizeof(referenceTerm *));
+        for(int64_t i=ref->nodeNumber; i<ref->nodeNumber*2; i++) {
+            ref->nodesInGraph[i] = NULL;
+        }
+        ref->nodeNumber *= 2;
+    }
     assert(reference_getTerm(ref, rT->node) == NULL);
     ref->nodesInGraph[llabs(rT->node)-1] = rT;
 }
@@ -447,6 +454,24 @@ void reference_log(reference *ref) {
         }
         st_logInfo("\n");
     }
+}
+
+void reference_splitInterval(reference *ref, int64_t pNode, int64_t stub1, int64_t stub2) {
+    reference_makeNewInterval(ref, stub2, stub1);
+    referenceTerm *pNodeTerm = reference_getTerm(ref, pNode);
+    referenceTerm *nNodeTerm = pNodeTerm->nTerm;
+    assert(nNodeTerm != NULL); //Is not a stub end.
+    referenceTerm *stub1Term = reference_getTerm(ref, stub1);
+    referenceTerm *stub2Term = stub1Term->pTerm;
+    assert(stub2Term != NULL && stub2Term == refenrence_getTerm(ref, stub2));
+    assert(stub1Term->nTerm == NULL);
+    assert(stub2Term->pTerm == NULL);
+    pNodeTerm->nTerm = stub1Term;
+    stub1Term->pTerm = pNodeTerm;
+    stub2Term->nTerm = nNodeTerm;
+    nNodeTerm->pTerm = stub2Term;
+    stub1Term->first = pNodeTerm->first;
+    nNodeTerm->first = stub2Term;
 }
 
 /*
