@@ -172,7 +172,7 @@ static stList *chooseAdjacencyPairing_externalProgram(stList *edges, int64_t nod
     /*
      * We run the external program.
      */
-    char *command = stString_print("%s -e %s -w %s >& /dev/null", programName, tempInputFile, tempOutputFile);
+    char *command = stString_print("%s -e %s -w %s > /dev/null 2>&1", programName, tempInputFile, tempOutputFile);
     int64_t i = st_system(command);
     if(i != 0) {
         st_errAbort("Something went wrong with the command: %s", command);
