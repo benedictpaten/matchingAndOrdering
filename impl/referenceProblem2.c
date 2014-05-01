@@ -318,6 +318,34 @@ void reference_makeNewInterval(reference *ref, int64_t firstNode, int64_t lastNo
     stList_append(ref->referenceIntervals, rTF);
 }
 
+void reference_removeIntervals(reference *ref, stSortedSet *firstNodesOfIntervalsToRemove) {
+    stList *updatedReferenceIntervals = stList_construct();
+    for(int64_t i=0;i<stList_length(ref->referenceIntervals); i++) {
+        int64_t node = reference_getFirstOfInterval(ref, i);
+        referenceTerm *rT = reference_getTerm(ref, node);
+        assert(rT != NULL);
+        stIntTuple *j = stIntTuple_construct1(node);
+        if(stSortedSet_search(firstNodesOfIntervalsToRemove, j) == NULL) { //It is not in the list of intervals to delete,
+            //so we add it to the list of intervals to keep
+            stList_append(updatedReferenceIntervals, reference_getTerm(ref, node));
+        }
+        else {
+            //Release the term from the node array
+            assert(rT->pTerm == NULL);
+            while(rT != NULL) {
+                ref->nodesInGraph[llabs(rT->node)-1] = NULL;
+                referenceTerm *rTP = rT;
+                rT = rT->nTerm;
+                assert(rT == NULL || rT->pTerm == rTP);
+                free(rTP);
+           }
+        }
+        stIntTuple_destruct(j);
+    }
+    stList_destruct(ref->referenceIntervals);
+    ref->referenceIntervals = updatedReferenceIntervals;
+}
+
 void reference_insertNode(reference *ref, int64_t pNode, int64_t node) {
     referenceTerm *rT = st_malloc(sizeof(referenceTerm)), *rTP;
     rT->node = node;
@@ -459,33 +487,60 @@ void reference_log(reference *ref) {
     }
 }
 
+static void setFirstPointer(referenceTerm *term, referenceTerm *firstTerm) {
+    assert(firstTerm->pTerm == NULL);
+    assert(firstTerm->first == firstTerm);
+    do {
+        term->first = firstTerm;
+        term = term->nTerm;
+    } while(term != NULL);
+}
+
+void reference_translocateIntervals(reference *ref, int64_t pNode1, int64_t nNode2) {
+    referenceTerm *pNode1Term = reference_getTerm(ref, pNode1);
+    assert(pNode1Term != NULL);
+    referenceTerm *nNode1Term = pNode1Term->nTerm;
+    assert(nNode1Term != NULL); //pNode1 is not a stub end.
+    referenceTerm *nNode2Term = reference_getTerm(ref, nNode2);
+    referenceTerm *pNode2Term = nNode2Term->pTerm;
+    assert(pNode2Term != NULL); //nNode2 is not a stub end.
+    //The critical translocation lines
+    pNode1Term->nTerm = nNode2Term;
+    nNode2Term->pTerm = pNode1Term;
+    pNode2Term->nTerm = nNode1Term;
+    nNode1Term->pTerm = pNode2Term;
+    //Correct the "first" pointers.
+    assert(nNode1Term->first == pNode1Term->first);
+    assert(nNode2Term->first == pNode2Term->first);
+    setFirstPointer(nNode1Term, pNode2Term->first);
+    setFirstPointer(nNode2Term, pNode1Term->first);
+}
+
 void reference_splitInterval(reference *ref, int64_t pNode, int64_t stub1, int64_t stub2) {
     assert(reference_getNext(ref, pNode) != INT64_MAX);
     assert(!reference_inGraph(ref, stub1));
     assert(!reference_inGraph(ref, stub2));
     assert(stub1 != stub2);
     reference_makeNewInterval(ref, stub2, stub1);
-    referenceTerm *pNodeTerm = reference_getTerm(ref, pNode);
-    assert(pNodeTerm != NULL);
-    referenceTerm *nNodeTerm = pNodeTerm->nTerm;
-    assert(nNodeTerm != NULL); //Is not a stub end.
-    referenceTerm *stub1Term = reference_getTerm(ref, stub1);
-    referenceTerm *stub2Term = stub1Term->pTerm;
-    assert(stub2Term != NULL && stub2Term == reference_getTerm(ref, stub2));
-    assert(stub1Term->nTerm == NULL);
-    assert(stub2Term->pTerm == NULL);
-    pNodeTerm->nTerm = stub1Term;
-    stub1Term->pTerm = pNodeTerm;
-    stub2Term->nTerm = nNodeTerm;
-    nNodeTerm->pTerm = stub2Term;
-    assert(stub1Term->first == stub2Term);
-    stub1Term->first = pNodeTerm->first;
-    assert(nNodeTerm->first == pNodeTerm->first);
-    do {
-        nNodeTerm->first = stub2Term;
-        nNodeTerm = nNodeTerm->nTerm;
-    } while(nNodeTerm != NULL);
-    assert(stub2Term->first == stub2Term);
+    reference_translocateIntervals(ref, pNode, stub1);
+}
+
+/*
+ * Returns the integer value of the absolute highest valued node in the reference.
+ */
+int64_t reference_getMaximumNode(reference *ref) {
+	int64_t maxNode = INT64_MIN;
+	for(int64_t interval=0; interval<reference_getIntervalNumber(ref); interval++) {
+		int64_t node = reference_getFirstOfInterval(ref, interval);
+		while(node != INT64_MAX) {
+			if(llabs(node) > maxNode) {
+				maxNode = llabs(node);
+			}
+			node = reference_getNext(ref, node);
+		}
+	}
+	assert(maxNode != INT64_MAX);
+	return maxNode;
 }
 
 /*
@@ -774,6 +829,7 @@ static insertPoint *connectedNodes_popBestInsert(connectedNodes *cN, refAdjList 
         cN->misses++;
         free(iP);
     }
+    return NULL;
 }
 
 /*
@@ -1049,46 +1105,74 @@ void reorderReferenceToAvoidBreakpoints(refAdjList *aL, reference *ref) {
     }
 }
 
-void translocateInterval(reference *ref, int64_t n, int64_t length, int64_t pNode) {
-    assert(pNode != INT64_MAX);
-    assert(n != INT64_MAX);
-    int64_t i=0;
-    while(i++<length) {
-        int64_t m = reference_getNext(ref, n);
-        assert(m != INT64_MAX);
-        reference_removeNode(ref, n);
-        reference_insertNode(ref, pNode, n);
-        pNode = n;
-        n = m;
-    }
+stList *splitReferenceAtIndicatedLocations(reference *ref, bool (*refSplitFn)(int64_t, reference *, void *), void *extraArgs) {
+	int64_t indexOfFirstNewStub = reference_getMaximumNode(ref)+1; //The new stubs need to be unique in the reference
+	assert(indexOfFirstNewStub < INT64_MAX);
+	assert(!reference_inGraph(ref, indexOfFirstNewStub));
+	stList *newStubs = stList_construct3(0, (void (*)(void *))stIntTuple_destruct);
+	for(int64_t interval=reference_getIntervalNumber(ref)-1; interval>=0; interval--) { //Iterate over only the old intervals, not those involving new stubs.
+		int64_t pNode = reference_getFirstOfInterval(ref, interval);
+		int64_t node = reference_getNext(ref, pNode);
+		while(node != INT64_MAX) {
+			if(refSplitFn(pNode, ref, extraArgs)) { //Determine if a split is needed.
+				int64_t newStub1 = indexOfFirstNewStub++;
+				int64_t newStub2 = indexOfFirstNewStub++;
+				stList_append(newStubs, stIntTuple_construct1(newStub1));
+				stList_append(newStubs, stIntTuple_construct1(-newStub2)); //Invert the sign, because we use signs to refer to sides of a node
+				reference_splitInterval(ref, pNode, newStub1, newStub2);
+			}
+			pNode = node;
+			node = reference_getNext(ref, pNode);
+		}
+	}
+	return newStubs;
 }
 
-int64_t getShortestInterval(reference *ref) {
-    int64_t shortestInterval = INT64_MAX;
-    int64_t shortestIntervalLength = INT64_MAX;
-    for(int64_t i=0; i<reference_getIntervalNumber(ref); i++) {
-        int64_t n = reference_getFirstOfInterval(ref, i);
-        int64_t length = reference_getRemainingIntervalLength(ref, n);
-        if(length == 0) {
-            return n;
-        }
-        if(length < shortestIntervalLength) {
-            shortestInterval = n;
-            shortestIntervalLength = length;
-        }
-    }
-    return shortestInterval;
+static void removeStub(stSortedSet *extraStubNodesSet, int64_t node) {
+    stIntTuple *stub = stIntTuple_construct1(node);
+    assert(stSortedSet_search(extraStubNodesSet, stub) != NULL);
+    stSortedSet_remove(extraStubNodesSet, stub);
+    stIntTuple_destruct(stub);
 }
 
-void reorderToAvoidOverlargeChromosome(reference *ref, bool (*tooLarge)(reference *, int64_t n)) {
-    for(int64_t i=0; i<reference_getIntervalNumber(ref); i++) {
-        int64_t n = reference_getFirstOfInterval(ref, i);
-        int64_t length = reference_getRemainingIntervalLength(ref, n);
-        if(tooLarge(ref, n) && length > 2) {
-            int64_t m = getShortestInterval(ref);
-            if(m != n) {
-                translocateInterval(ref, reference_getNext(ref, n), length/2, m);
-            }
+stList *remakeReferenceIntervals(reference *ref, stList *referenceIntervalsToPreserve, stList *extraStubNodes) {
+    stSortedSet *extraStubNodesSet = stList_getSortedSet(extraStubNodes, (int (*)(const void *, const void *))stIntTuple_cmpFn);
+    stSortedSet *firstNodesOfIntervalsToRemove = stSortedSet_construct3((int (*)(const void *, const void *))stIntTuple_cmpFn, (void (*)(void *))stIntTuple_destruct);
+    for(int64_t i=0; i<stList_length(referenceIntervalsToPreserve); i++) {
+        stIntTuple *intervalToPreserve = stList_get(referenceIntervalsToPreserve, i);
+        int64_t startNode = stIntTuple_get(intervalToPreserve, 0);
+        assert(reference_getFirst(ref, startNode) == startNode);
+        int64_t endNode = stIntTuple_get(intervalToPreserve, 1);
+        assert(reference_getLast(ref, endNode) == endNode);
+        int64_t nodeAdjacentStartNode = reference_getLast(ref, startNode);
+        int64_t nodeAdjacentEndNode = reference_getFirst(ref, endNode);
+        if(nodeAdjacentStartNode != endNode) { //We have identified a case where we need to scaffold across a break.
+            assert(llabs(nodeAdjacentStartNode) != llabs(endNode));
+            //void reference_translocateIntervals(reference *ref, int64_t pNode1, int64_t nNode2)
+            reference_translocateIntervals(ref, reference_getPrevious(ref, nodeAdjacentStartNode), reference_getNext(ref, nodeAdjacentEndNode));
+            //Check we have the correct connectivity
+            assert(reference_getLast(ref, startNode) == endNode);
+            assert(reference_getFirst(ref, endNode) == startNode);
+            assert(reference_getLast(ref, nodeAdjacentEndNode) == nodeAdjacentStartNode);
+            assert(reference_getNext(ref, nodeAdjacentEndNode) == nodeAdjacentStartNode);
+            assert(reference_getFirst(ref, nodeAdjacentStartNode) == nodeAdjacentEndNode);
+            assert(reference_getPrevious(ref, nodeAdjacentStartNode) == nodeAdjacentEndNode);
+            //Append to list of stub intervals to delete.
+            assert(reference_getFirst(ref, nodeAdjacentEndNode) == nodeAdjacentEndNode);
+            stSortedSet_insert(firstNodesOfIntervalsToRemove, stIntTuple_construct1(nodeAdjacentEndNode));
+            //Delete the stubs
+            removeStub(extraStubNodesSet, nodeAdjacentStartNode);
+            removeStub(extraStubNodesSet, -nodeAdjacentEndNode); //The minus sign is to refer to the 3' end of the node.
+        }
+        else {
+            assert(nodeAdjacentEndNode == startNode);
         }
     }
+    //Remove the old stub intervals
+    reference_removeIntervals(ref, firstNodesOfIntervalsToRemove);
+    stSortedSet_destruct(firstNodesOfIntervalsToRemove);
+    //Revise list of extra stub nodes.
+    extraStubNodes = stSortedSet_getList(extraStubNodesSet);
+    stSortedSet_destruct(extraStubNodesSet);
+    return extraStubNodes;
 }
