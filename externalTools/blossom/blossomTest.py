@@ -50,7 +50,7 @@ class TestCase(unittest.TestCase):
             system("blossom_randGraph.py > %s" % tempInputFile)
 
             # Run blossom5
-            system("blossom5 -e %s -w %s >& /dev/null" % (tempInputFile, tempOutputFile))
+            system("blossom5 -e %s -w %s >/dev/null 2>&1" % (tempInputFile, tempOutputFile))
 
             # Now check if output is valid
             f = open(tempOutputFile, 'r')
