@@ -107,6 +107,12 @@ void reference_log(reference *ref);
 //Splits an interval into two, making the existing interval end with stub1, and the new interval (which will be last interval) start with stub2.
 void reference_splitInterval(reference *ref, int64_t pNode, int64_t stub1, int64_t stub2);
 
+//Gets the maximum value of a node in the reference. Makes it easy to generate a unique new node.
+int64_t reference_getMaximumNode(reference *ref);
+
+//Remove intervals, input is set of first nodes of intervals. The intervals containing these first nodes are removed, including all members of the interval.
+void reference_removeIntervals(reference *ref, stSortedSet *firstNodesOfIntervalsToRemove);
+
 /*
  * Reference algorithms
  */
@@ -135,6 +141,16 @@ int64_t getBadAdjacencyCount(refAdjList *aL, reference *ref);
 /*
  * Breaks up chromosomes.
  */
-void reorderToAvoidOverlargeChromosome(reference *ref, bool (*tooLarge)(reference *, int64_t n));
+
+/*
+ * Splits the reference up at any adjacency that refSplitFn returns non-zero for.
+ */
+stList *splitReferenceAtIndicatedLocations(reference *ref, bool (*refSplitFn)(int64_t, reference *, void *), void *extraArgs);
+
+/*
+ * Rejoins reference intervals that are specified by referenceIntervalsToPreserve. Returns a modified list of extraStubNodes with
+ * unneeded stubs removed.
+ */
+stList *remakeReferenceIntervals(reference *ref, stList *referenceIntervalsToPreserve, stList *extraStubNodes);
 
 #endif /* REFERENCEPROBLEM2_H_ */

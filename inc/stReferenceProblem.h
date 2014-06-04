@@ -8,6 +8,8 @@
 #ifndef REFERENCEPROBLEM_H_
 #define REFERENCEPROBLEM_H_
 
+#include "sonLib.h"
+
 stList *makeReferenceGreedily(stList *stubs, stList *chains,
         float *z, int64_t nodeNumber, double *totalScore, bool fast);
 
